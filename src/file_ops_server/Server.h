@@ -9,6 +9,7 @@
 #include<boost/asio/read.hpp>
 #include<boost/asio/ip/tcp.hpp>
 #include<boost/asio/io_service.hpp>
+#include<mutex>
 #include"Session.h"
 #include<list>
 #include<AddressManager.h>
@@ -52,6 +53,7 @@ private:
     boost::asio::signal_set m_signalSet;
     AddrManager m_addrManager;
     ServerSettings m_serverSettings;
+    std::mutex m_mutex;
     //callback functions
     void on_clientConnect(Session& argSession, const boost::system::error_code& ec);
     void onExit(boost::system::error_code ec, int signal);

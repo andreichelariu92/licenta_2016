@@ -48,15 +48,21 @@ void Session::onMessageReceived(const boost::system::error_code& ec, std::size_t
                //exec operation
                op->exec();
 
-               //get result
-               //and send it back
+               //get the result
                std::string result=op->getResult();
-               //send is synchronous
-               boost::asio::write( m_socket, boost::asio::buffer(result.c_str(), result.size()) );
+               //send it  back synchronously
+               try
+               {
+                  boost::asio::write( m_socket, boost::asio::buffer(result.c_str(), result.size()) );
 
-               //set the stopFlag
-               stopFlag=op->requestStop();
-
+                  //set the stopFlag
+                  stopFlag=op->requestStop();
+               }
+               catch(...)
+               {
+                   //stop listening for new messages
+                   stopFlag = true;
+               }
                //delete the operation
                delete op;
            }
@@ -78,8 +84,14 @@ void Session::onMessageReceived(const boost::system::error_code& ec, std::size_t
            {
                //if there is a request to stop
                //close the Session
-               this->close();
+               try
+               {
+                   this->close();
+               }
+               catch(...)
+               {
 
+               }
            }
     }
 }

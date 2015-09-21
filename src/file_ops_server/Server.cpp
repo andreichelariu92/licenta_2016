@@ -6,7 +6,9 @@
 using namespace boost::asio;
 using namespace boost::asio::ip;
 ServerSettings::ServerSettings(unsigned int argNrThreads, unsigned int argSessionSize, unsigned int argClientQueueSize)
-   :nrThreads(argNrThreads), sessionSize(argSessionSize), clientQueueSize(argClientQueueSize)
+   :nrThreads(argNrThreads),
+    sessionSize(argSessionSize),
+    clientQueueSize(argClientQueueSize)
 {}
 ServerSettings ServerSettings::defaultSettings()
 {
@@ -17,8 +19,12 @@ ServerSettings ServerSettings::defaultSettings()
 //function definitions for EchoServer class
 //**************************************
 Server::Server(int argPort, AddrManager& addrMgr, ServerSettings argServerSettings)
-  :m_ioService(), m_acceptor(m_ioService), m_port(argPort), m_signalSet(m_ioService),
-   m_addrManager(std::move(addrMgr)), m_serverSettings(argServerSettings)
+  :m_ioService(), m_acceptor(m_ioService),
+   m_port(argPort),
+   m_signalSet(m_ioService),
+   m_addrManager(std::move(addrMgr)),
+   m_serverSettings(argServerSettings),
+   m_mutex()
 {
     //register the exit signals
     //to the signal set
@@ -47,29 +53,43 @@ void Server::on_clientConnect(Session& argSession, const boost::system::error_co
         //show message at stdin
         //when client connected
         std::cout<<"Client connected \n";
-
-        //check if the client has it's ip
-        //is in the AddrManager
-        //if it is receive messages from it
-        std::string clientIp = AddrManager::getIp(argSession.getSocket());
-        if( m_addrManager.findIp(clientIp) )
+        try
         {
-            //create wrapper for the member session function
-            auto wrapper=[&argSession](const boost::system::error_code& ec, std::size_t nrBytes)
+            //check if the client has its ip
+            //in the AddrManager
+            //if it is receive messages from it
+            std::string clientIp = AddrManager::getIp(argSession.getSocket());
+            if( m_addrManager.findIp(clientIp) )
             {
-                argSession.onMessageReceived(ec,nrBytes);
-            };
+                //create wrapper for the member session function
+                auto wrapper=[&argSession](const boost::system::error_code& ec, std::size_t nrBytes)
+                {
+                    argSession.onMessageReceived(ec,nrBytes);
+                };
 
-            //when the client sends a message
-            //call argSession.onMessageReceived
-            argSession.getSocket().async_read_some( boost::asio::buffer( argSession.getBuffer(), argSession.getBufferSize() ),wrapper);
-            std::cout<<"End of on_clientConnect\n";
-
+                //when the client sends a message
+                //call argSession.onMessageReceived
+                argSession.getSocket().async_read_some( boost::asio::buffer( argSession.getBuffer(), argSession.getBufferSize() ),wrapper);
+                std::cout<<"End of on_clientConnect\n";
+            }
+            else
+            {
+                std::cout<<clientIp<<" is not in the trusted addresses\n";
+                argSession.close();
+            }
         }
-        else
+        catch(...)
         {
-            std::cout<<clientIp<<" is not in the trusted addresses\n";
+          //show message to log
+
+          //try to close the session
+            try
+            {
             argSession.close();
+            }
+            catch(...)
+            {
+            }
         }
 
         //create session for the next client
@@ -83,13 +103,27 @@ void Server::onExit(boost::system::error_code ec, int signal)
     {
         std::cout<<"\nthe server will exit\n";
         //close the acceptor
-        m_acceptor.cancel();
-        m_acceptor.close();
+        try
+        {
+            m_acceptor.cancel();
+            m_acceptor.close();
+        }
+        catch(...)
+        {
+            //show message to log
+        }
 
         //close all the sessions
         for(Session& s : m_sessions)
         {
-            s.close();
+            try
+            {
+                s.close();
+            }
+            catch(...)
+            {
+
+            }
         }
     }
 }
@@ -98,8 +132,14 @@ void Server::createSessionAndStartIt(unsigned int bufferSize)
    //create a session for the next client
    Session leSession(m_ioService, bufferSize);
 
+   {//enter critical section
+
+   std::lock_guard<std::mutex> lock(m_mutex);
+
    //move the session in the list
    m_sessions.push_back( std::move(leSession) );
+
+   }//exit critical section
 
    //create wrapper for the member function
    auto wrapper=[this](const boost::system::error_code& ec)
@@ -107,9 +147,15 @@ void Server::createSessionAndStartIt(unsigned int bufferSize)
        this->on_clientConnect(m_sessions.back(),ec);
    };
 
+   {//enter critical section
+
+   std::lock_guard<std::mutex> lock(m_mutex);
+
    //when the next client connects
    //on_clientConnect will be called
    m_acceptor.async_accept(m_sessions.back().getSocket(),wrapper);
+
+   }//exit critical section
 
 }
 void Server::start()
@@ -117,23 +163,30 @@ void Server::start()
     //create endpoint
    tcp::endpoint ep(tcp::v4(),m_port);
 
-   //open the acceptor for the endpoint protocol
-   m_acceptor.open(ep.protocol());
+   try
+   {
+       //open the acceptor for the endpoint protocol
+       m_acceptor.open(ep.protocol());
 
-   //set the acceptor
-    //to reuse the address
-    boost::asio::socket_base::reuse_address reuseAddr(true);
-    m_acceptor.set_option(reuseAddr);
+       //set the acceptor
+        //to reuse the address
+        boost::asio::socket_base::reuse_address reuseAddr(true);
+        m_acceptor.set_option(reuseAddr);
 
-   //bind acceptor with endpoint
-   m_acceptor.bind(ep);
+       //bind acceptor with endpoint
+       m_acceptor.bind(ep);
 
-   //set the max client queue
-   m_acceptor.listen(m_serverSettings.clientQueueSize);
+       //set the max client queue
+       m_acceptor.listen(m_serverSettings.clientQueueSize);
 
-   //create a session with bufferSize=1024
-   //for the first client and start it
-   createSessionAndStartIt(m_serverSettings.sessionSize);
+       //create a session
+       //for the first client and start it
+       createSessionAndStartIt(m_serverSettings.sessionSize);
+   }
+   catch(...)
+   {
+       //show message to log
+   }
 }
 void Server::runSingleThread()
 {
