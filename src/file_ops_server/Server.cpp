@@ -213,6 +213,8 @@ void Server::runMultiThread()
       threads.push_back(std::move(t));
    }
 
+   m_ioService.run();
+
    //wait for all the threads to finish
    for(auto& t: threads)
        t.join();

@@ -13,6 +13,7 @@
 #include"Session.h"
 #include<list>
 #include<AddressManager.h>
+#include"../util/Logger.h"
 /**
   * @section DESCRIPTION
   * The ServerSettings structure
