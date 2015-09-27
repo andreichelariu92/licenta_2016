@@ -5,6 +5,7 @@
 #include<fstream>
 #include<thread>
 #include<string>
+#include<ctime>
 struct Information
 {
     unsigned int lineNumber;
@@ -12,12 +13,12 @@ struct Information
     std::string filename;
     std::string time;
 
-    Information(unsigned int ln, std::thread::id tid, std::string file, std::string tm)
-        :lineNumber(ln), threadId(tid), filename(file), time(tm)
+    Information(unsigned int ln, std::string file)
+        :lineNumber(ln), threadId(0), filename(file), time()
     {}
 
 };
-#define INFO Information(__LINE__, std::this_thread::get_id(), __FILE__, __TIME__)
+#define INFO Information(__LINE__, __FILE__)
 
 class Logger
 {

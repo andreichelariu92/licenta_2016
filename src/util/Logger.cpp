@@ -33,6 +33,11 @@ Logger& Logger::operator <<(Logger::Prio data)
  }
 Logger& Logger::operator <<(Information info)
 {
+    info.threadId=std::this_thread::get_id();
+    std::time_t t= std::time(NULL);
+    //get hh:mm:ss from t
+    info.time=std::string( std::ctime( &t ), 11, 8);
+
     {//enter critical section
     std::lock_guard<std::mutex> lock(m_mutex);
 
@@ -44,5 +49,4 @@ Logger& Logger::operator <<(Information info)
     }//exit critical section
 
     return *this;
-
 }
