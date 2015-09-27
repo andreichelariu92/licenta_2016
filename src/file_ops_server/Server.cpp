@@ -47,55 +47,55 @@ Server::Server(int argPort, AddrManager& addrMgr, ServerSettings argServerSettin
 }
 void Server::on_clientConnect(Session& argSession, const boost::system::error_code& ec)
 {
-   std::cout<<"on_clientConnect "<<ec.message()<<"\n";
-   if(!ec)
+   if(ec)
    {
-        //show message at stdin
-        //when client connected
-        std::cout<<"Client connected \n";
+        //exit the function if there is an error
+    LOG<<Logger::Prio::error<<INFO<<ec.message()<<"\n";
+    return;
+   }
+   //show message at log
+   LOG<<Logger::Prio::trace<<INFO<<"Client connected \n";
+   try
+   {
+    //check if the client has its ip
+        //in the AddrManager
+        //if it is receive messages from it
+        std::string clientIp = AddrManager::getIp(argSession.getSocket());
+        if( m_addrManager.findIp(clientIp) )
+        {
+            //create wrapper for the member session function
+            auto wrapper=[&argSession](const boost::system::error_code& ec, std::size_t nrBytes)
+            {
+                argSession.onMessageReceived(ec,nrBytes);
+            };
+
+            //when the client sends a message
+            //call argSession.onMessageReceived
+            argSession.getSocket().async_read_some( boost::asio::buffer( argSession.getBuffer(), argSession.getBufferSize() ),wrapper);
+            LOG<<Logger::Prio::trace<<INFO<<"End of on_clientConnect\n";
+        }
+        else
+        {
+            std::cout<<clientIp<<" is not in the trusted addresses\n";
+            argSession.close();
+        }
+   }
+   catch(boost::system::system_error& e)
+   {
+        LOG<<Logger::Prio::exception<<INFO<<std::string( e.what() );
         try
         {
-            //check if the client has its ip
-            //in the AddrManager
-            //if it is receive messages from it
-            std::string clientIp = AddrManager::getIp(argSession.getSocket());
-            if( m_addrManager.findIp(clientIp) )
-            {
-                //create wrapper for the member session function
-                auto wrapper=[&argSession](const boost::system::error_code& ec, std::size_t nrBytes)
-                {
-                    argSession.onMessageReceived(ec,nrBytes);
-                };
-
-                //when the client sends a message
-                //call argSession.onMessageReceived
-                argSession.getSocket().async_read_some( boost::asio::buffer( argSession.getBuffer(), argSession.getBufferSize() ),wrapper);
-                std::cout<<"End of on_clientConnect\n";
-            }
-            else
-            {
-                std::cout<<clientIp<<" is not in the trusted addresses\n";
-                argSession.close();
-            }
-        }
-        catch(...)
-        {
-          //show message to log
-
-          //try to close the session
-            try
-            {
             argSession.close();
-            }
-            catch(...)
-            {
-            }
         }
+        catch(boost::system::system_error& e)
+        {
+           LOG<<Logger::Prio::exception<<INFO<<std::string( e.what() );
+        }
+   }
 
         //create session for the next client
         //and start it
         createSessionAndStartIt(m_serverSettings.sessionSize);
-   }
 }
 void Server::onExit(boost::system::error_code ec, int signal)
 {
@@ -108,55 +108,32 @@ void Server::onExit(boost::system::error_code ec, int signal)
             m_acceptor.cancel();
             m_acceptor.close();
         }
-        catch(...)
+        catch(boost::system::system_error& e)
         {
-            //show message to log
-        }
-
-        //close all the sessions
-        for(Session& s : m_sessions)
-        {
-            try
-            {
-                s.close();
-            }
-            catch(...)
-            {
-
-            }
+            LOG<<Logger::Prio::exception<<INFO<<std::string( e.what() );
         }
     }
 }
 void Server::createSessionAndStartIt(unsigned int bufferSize)
 {
+   //get the mutex (serialize access)
+   std::lock_guard<std::mutex> lock(m_mutex);
+
    //create a session for the next client
    Session leSession(m_ioService, bufferSize);
-
-   {//enter critical section
-
-   std::lock_guard<std::mutex> lock(m_mutex);
 
    //move the session in the list
    m_sessions.push_back( std::move(leSession) );
 
-   }//exit critical section
-
    //create wrapper for the member function
    auto wrapper=[this](const boost::system::error_code& ec)
    {
-       this->on_clientConnect(m_sessions.back(),ec);
+       this->on_clientConnect(m_sessions.back(), ec);
    };
-
-   {//enter critical section
-
-   std::lock_guard<std::mutex> lock(m_mutex);
 
    //when the next client connects
    //on_clientConnect will be called
    m_acceptor.async_accept(m_sessions.back().getSocket(),wrapper);
-
-   }//exit critical section
-
 }
 void Server::start()
 {
@@ -183,9 +160,9 @@ void Server::start()
        //for the first client and start it
        createSessionAndStartIt(m_serverSettings.sessionSize);
    }
-   catch(...)
+   catch(boost::system::system_error& e)
    {
-       //show message to log
+       LOG<<Logger::Prio::exception<<INFO<<std::string( e.what() );
    }
 }
 void Server::runSingleThread()

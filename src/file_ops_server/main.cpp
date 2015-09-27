@@ -5,7 +5,6 @@
 
 int main(int argc, char* argv[])
 {
-    /*
     if(argc ==2)
     {
     using namespace boost::asio;
@@ -18,9 +17,5 @@ int main(int argc, char* argv[])
     //run the server on multiple threads
     return 0;
     }
-    */
-
-    LOG<<Logger::Prio::trace<<INFO<<"salut"<<"ce faci";
-    return 0;
 
 }
