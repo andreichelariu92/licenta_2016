@@ -48,8 +48,27 @@ public:
         }//exit critical section
         return *this;
     }
+
+    template<typename T>
+    Logger& operator<<(T data)
+    {
+        {//enter critical section
+            std::lock_guard<std::mutex> lock(m_mutex);
+            m_ofs<<data;
+        }//exit critical section
+        return *this;
+    }
+
     Logger& operator<<(Prio data);
     Logger& operator<<(Information info);
+    Logger& operator<<(const char* s)
+    {
+        {//enter critical section
+            std::lock_guard<std::mutex> lock(m_mutex);
+            m_ofs<<s;
+        }//exit critical section
+        return *this;
+    }
 
 
     static Logger& getInstance(std::string filename="logfile");
