@@ -49,7 +49,7 @@ void Server::on_clientConnect(Session& argSession, const boost::system::error_co
 {
    if(ec)
    {
-        //exit the function if there is an error
+    //exit the function if there is an error
     LOG<<Logger::Prio::error<<INFO<<ec.message()<<"\n";
     return;
    }
@@ -101,7 +101,7 @@ void Server::onExit(boost::system::error_code ec, int signal)
 {
     if(!ec)
     {
-        std::cout<<"\nthe server will exit\n";
+        LOG<<Logger::Prio::trace<<INFO<<"received "<<signal<<" the server will exit\n";
         //close the acceptor
         try
         {
