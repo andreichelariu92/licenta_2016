@@ -41,16 +41,6 @@ public:
     };
 
     template<typename T>
-    Logger& operator<<(T& data)
-    {
-        {//enter critical section
-            std::lock_guard<std::mutex> lock(m_mutex);
-            m_ofs<<data;
-        }//exit critical section
-        return *this;
-    }
-
-    template<typename T>
     Logger& operator<<(T data)
     {
         {//enter critical section
