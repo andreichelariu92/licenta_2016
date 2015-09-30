@@ -35,64 +35,67 @@ Session::~Session()
 }
 void Session::onMessageReceived(const boost::system::error_code& ec, std::size_t nrBytes)
 {
-    std::cout<<"onMessageReceived "<<ec.message()<<"\n";
-    if(!ec)
+    LOG<<Logger::Prio::trace<<INFO<<" onMessageReceived "<<ec.message()<<"\n";
+    if(ec)
     {
-           bool stopFlag=false;
-           //create operation
-           Operation* op=m_operationManager.createOperation(m_buffer,m_bufferSize);
+        //exit the function
+        LOG<<Logger::Prio::error<<INFO<<ec.message()<<"\n";
+        return;
+    }
+    bool stopFlag=false;
+    //create operation
+    Operation* op=m_operationManager.createOperation(m_buffer,nrBytes);
 
-           //if operation is valid
-           if(op != 0 )
-           {
-               //exec operation
-               op->exec();
+    if(op != 0 )
+    {
+        //exec operation
+        op->exec();
 
-               //get the result
-               std::string result=op->getResult();
-               //send it  back synchronously
-               try
-               {
-                  boost::asio::write( m_socket, boost::asio::buffer(result.c_str(), result.size()) );
+        //get the result
+        std::string result=op->getResult();
+        //send it  back synchronously
+        try
+        {
+            boost::asio::write( m_socket, boost::asio::buffer(result.c_str(), result.size()) );
 
-                  //set the stopFlag
-                  stopFlag=op->requestStop();
-               }
-               catch(...)
-               {
-                   //stop listening for new messages
-                   stopFlag = true;
-               }
-               //delete the operation
-               delete op;
-           }
+            //set the stopFlag
+            stopFlag=op->requestStop();
+        }
+        catch(boost::system::system_error& e)
+        {
+            LOG<<Logger::Prio::exception<<INFO<<std::string( e.what() );
+            //stop listening for new messages
+            stopFlag = true;
+        }
+       //delete the operation
+       delete op;
+    }
 
-           //if there is no requested to stop
-           //continue to receive messages
-           if(!stopFlag)
-           {
-              //when the next message is sent call onMessageReceived
-              auto wrapper=[this](const boost::system::error_code& ec, std::size_t nrBytes)
-              {
-                 this->onMessageReceived(ec,nrBytes);
-              };
-              //the function will exit imediately
-              //it is not recursive!
-              m_socket.async_read_some(boost::asio::buffer(m_buffer,m_bufferSize),wrapper);
-           }
-           else
-           {
-               //if there is a request to stop
-               //close the Session
-               try
-               {
-                   this->close();
-               }
-               catch(...)
-               {
-
-               }
-           }
+    //if there is no request to stop
+    //continue to receive messages
+    if(!stopFlag)
+    {
+        //when the next message is sent call onMessageReceived
+        auto wrapper=[this](const boost::system::error_code& ec, std::size_t nrBytes)
+        {
+            this->onMessageReceived(ec,nrBytes);
+        };
+        //the function will exit imediately
+        //it is not recursive!
+        m_socket.async_read_some(boost::asio::buffer(m_buffer,m_bufferSize),wrapper);
+    }
+    else
+    {
+        //if there is a request to stop
+        //close the Session
+        try
+        {
+            this->close();
+        }
+        catch(boost::system::system_error& e)
+        {
+            LOG<<Logger::Prio::exception<<INFO<<std::string( e.what() );
+        }
     }
 }
 void Session::close()
@@ -104,7 +107,7 @@ void Session::close()
     }
     if(m_socket.is_open())
     {
-        std::cout<<"Close session\n";
+        LOG<<Logger::Prio::trace<<INFO<<" close session\n";
         //close the read
         //and write buffers
         m_socket.shutdown(boost::asio::ip::tcp::socket::shutdown_both);
@@ -115,7 +118,6 @@ void Session::close()
 
 bool Session::processMessage(std::size_t nrBytes)
 {
-   std::cout<<"Message received "<<m_buffer;
 
    //send the message back to the client
    //this function will block the thread

@@ -8,6 +8,7 @@
 
 #include"OperationManager.h"
 #include"Operation.h"
+#include"../util/Logger.h"
 
 class Session
 {
