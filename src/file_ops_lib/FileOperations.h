@@ -6,5 +6,5 @@
 
 std::vector<char> readData(const boost::filesystem::path& path, unsigned int position, unsigned int size);
 void overWriteData(const boost::filesystem::path& path, unsigned int position, const std::vector<char>& buffer);
-
+void removeData(const boost::filesystem::path& path, unsigned int position, unsigned int length);
 #endif // FILEOPERATIONS_H

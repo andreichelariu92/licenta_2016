@@ -82,3 +82,29 @@ void overWriteData(const boost::filesystem::path& path, unsigned int position, c
 
     s_verifyStatusFile(file, path);
 }
+void removeData(const boost::filesystem::path& path, unsigned int position, unsigned int length)
+{
+   namespace fs = boost::filesystem;
+
+   s_verifyPathFile(path);
+   fs::fstream file(path, std::ios_base::binary | std::ios_base::in | std::ios_base::out);
+
+   const unsigned int fileLength = s_getFileLength(file);
+   //if the requested length to delete is too big
+   //the newFileBuffer will hold just the first characters (position)
+   s_verifyPositionFile(file, position);
+   const unsigned int newFileBufferSize = (fileLength > length) ? (fileLength - length) : position;
+   std::vector<char> newFileBuffer(newFileBufferSize);
+
+   file.read(&newFileBuffer[0], position);
+   s_verifyStatusFile(file, path);
+
+   file.seekg(position + length);
+
+   file.read(&newFileBuffer[position], newFileBufferSize - position);
+
+   file.close();
+   file.open(path, std::ios_base::binary | std::ios_base::out | std::ios_base::trunc);
+   file.write(&newFileBuffer[0], newFileBufferSize);
+
+}
