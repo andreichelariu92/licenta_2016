@@ -136,7 +136,28 @@ void addData(const boost::filesystem::path& path, unsigned int position, const s
    file.open(path, std::ios_base::binary | std::ios_base::out | std::ios_base::trunc);
    file.write(&newFileBuffer[0], newFileBuffer.size());
 }
-void createFileDirectory(unsigned int position, const boost::filesystem::path& path)
+void createFileOrDirectory(FileOperationOptions option, const boost::filesystem::path& path)
 {
+    namespace fs = boost::filesystem;
+    if (fs::exists(path))
+    {
+        std::cout<<"The path already exists\n";
+        //throw exception
+    }
 
+    if (option == file)
+    {
+       fs::fstream file;
+       file.open(path, std::ios_base::binary | std::ios_base::out);
+    }
+    else
+    {
+        fs::create_directory(path);
+    }
+
+    if(!fs::exists(path))
+    {
+        std::cout<<"The create operation for path "<<path.string()<<" has failed\n";
+        //throw exception
+    }
 }

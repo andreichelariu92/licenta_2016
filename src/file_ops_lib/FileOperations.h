@@ -8,5 +8,7 @@ std::vector<char> readData(const boost::filesystem::path& path, unsigned int pos
 void overWriteData(const boost::filesystem::path& path, unsigned int position, const std::vector<char>& buffer);
 void removeData(const boost::filesystem::path& path, unsigned int position, unsigned int length);
 void addData(const boost::filesystem::path& path, unsigned int position, const std::vector<char>& buffer);
-void createFileDirectory(unsigned int option, const boost::filesystem::path);
+
+enum FileOperationOptions { file=0, directory=1};
+void  createFileOrDirectory(FileOperationOptions option, const boost::filesystem::path& path);
 #endif // FILEOPERATIONS_H

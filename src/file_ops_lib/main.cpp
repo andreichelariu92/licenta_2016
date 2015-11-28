@@ -10,10 +10,9 @@ using namespace std;
 
 int main()
 {
-    boost::filesystem::path testPath("./testfile");
-    std::vector<char> buffer;
-    buffer.push_back('B');
-    buffer.push_back('B');
-    removeData(testPath, 2, 1);
+    boost::filesystem::path testPath("/home/andrei/testfile1");
+
+    FileOperationOptions option = directory;
+    createFileOrDirectory(option, testPath);
     return 0;
 }
