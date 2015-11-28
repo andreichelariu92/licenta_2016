@@ -11,6 +11,9 @@ using namespace std;
 int main()
 {
     boost::filesystem::path testPath("./testfile");
-    removeData(testPath, 0, 1);
+    std::vector<char> buffer;
+    buffer.push_back('B');
+    buffer.push_back('B');
+    removeData(testPath, 2, 1);
     return 0;
 }

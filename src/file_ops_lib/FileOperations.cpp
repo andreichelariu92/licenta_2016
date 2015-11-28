@@ -102,9 +102,41 @@ void removeData(const boost::filesystem::path& path, unsigned int position, unsi
    file.seekg(position + length);
 
    file.read(&newFileBuffer[position], newFileBufferSize - position);
+   s_verifyStatusFile(file, path);
 
    file.close();
    file.open(path, std::ios_base::binary | std::ios_base::out | std::ios_base::trunc);
    file.write(&newFileBuffer[0], newFileBufferSize);
+
+}
+void addData(const boost::filesystem::path& path, unsigned int position, const std::vector<char>& buffer)
+{
+   namespace fs = boost::filesystem;
+
+   s_verifyPathFile(path);
+   fs::fstream file(path, std::ios_base::binary | std::ios_base::in | std::ios_base::out);
+
+   const unsigned int fileLength = s_getFileLength(file);
+   std::vector<char> newFileBuffer(buffer.size() + fileLength);
+
+   s_verifyPositionFile(file, position);
+   file.read(&newFileBuffer[0], position);
+
+   //after the first position characters from file
+   //add the data from the buffer
+   std::copy(buffer.begin(), buffer.end(), (newFileBuffer.begin()+position) );
+
+   const unsigned int partialBufferSize = position + buffer.size();
+   file.read(&newFileBuffer[partialBufferSize], fileLength - position);
+   s_verifyStatusFile(file, path);
+
+   //to overwrite the file,
+   //we need to open it with std::ios_base::trunc flag
+   file.close();
+   file.open(path, std::ios_base::binary | std::ios_base::out | std::ios_base::trunc);
+   file.write(&newFileBuffer[0], newFileBuffer.size());
+}
+void createFileDirectory(unsigned int position, const boost::filesystem::path& path)
+{
 
 }

@@ -7,4 +7,6 @@
 std::vector<char> readData(const boost::filesystem::path& path, unsigned int position, unsigned int size);
 void overWriteData(const boost::filesystem::path& path, unsigned int position, const std::vector<char>& buffer);
 void removeData(const boost::filesystem::path& path, unsigned int position, unsigned int length);
+void addData(const boost::filesystem::path& path, unsigned int position, const std::vector<char>& buffer);
+void createFileDirectory(unsigned int option, const boost::filesystem::path);
 #endif // FILEOPERATIONS_H
