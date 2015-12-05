@@ -145,7 +145,7 @@ void createFileOrDirectory(FileOperationOptions option, const boost::filesystem:
         //throw exception
     }
 
-    if (option == file)
+    if (option == FOO_file)
     {
        fs::fstream file;
        file.open(path, std::ios_base::binary | std::ios_base::out);
@@ -160,4 +160,23 @@ void createFileOrDirectory(FileOperationOptions option, const boost::filesystem:
         std::cout<<"The create operation for path "<<path.string()<<" has failed\n";
         //throw exception
     }
+}
+void deleteFileOrDirectory(const boost::filesystem::path& path)
+{
+   namespace fs = boost::filesystem;
+
+   if (!fs::exists(path))
+   {
+       std::cout<<"Path does not exist\n";
+       //throw exception
+   }
+
+   //remove all works for files and for directories
+   fs::remove_all(path);
+
+   if (fs::exists(path))
+   {
+       std::cout<<"Something went wrong\n";
+       //throw exception
+   }
 }
