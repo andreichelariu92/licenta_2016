@@ -4,6 +4,7 @@
 #include <sys/types.h>
 #include <sys/inotify.h>
 
+#include "InotifyDirectory.h"
 int main()
 {
     //INSPIRATION:

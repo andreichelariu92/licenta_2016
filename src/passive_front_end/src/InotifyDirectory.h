@@ -13,8 +13,9 @@ class InotifyDirectory
 private:
     int fileDescriptor_;
     int watchDescriptor_;
+    std::string path_;
 public:
-    InotifyDirectory(std::string path);
+    InotifyDirectory(std::string path, unsigned mask);
     ///copy operations are not permited
     InotifyDirectory(const InotifyDirectory& source)=delete;
     InotifyDirectory& operator=(const InotifyDirectory& source)=delete;
@@ -35,6 +36,11 @@ public:
     {
         return watchDescriptor_;
     }
+    ///access the path
+    std::string path()
+    {
+        return path_;
+    }
 };
 
 ///Class that represents an error occured
@@ -50,7 +56,7 @@ public:
 
     const char* what()const noexcept override
     {
-        return message_;
+        return message_.c_str();
     }
 };
 #endif
