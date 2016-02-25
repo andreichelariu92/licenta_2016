@@ -5,64 +5,67 @@
 #include <sys/inotify.h>
 
 #include "InotifyDirectory.h"
+#include "SystemCallsWrappers.h"
+
+#include <vector>
+#include <poll.h>
+
 int main()
 {
     //INSPIRATION:
     //http://www.ibm.com/developerworks/library/l-ubuntu-inotify/
-
+    
+    //TO DO: Andrei: Test more carefully
+    
     //data for the inotify API
     //members of the wrapper class
     constexpr int EVENT_SIZE = sizeof(struct inotify_event);
     constexpr int BUFFER_SIZE = 1024 * (EVENT_SIZE + 16);
     char buffer[BUFFER_SIZE];
-    int fileDescriptor;
-    int writeDescriptor;
     int length = 0;
     int i = 0;
     
-    //initialize the api
-    //this code will be in the constructor of the wrapper
-    fileDescriptor = inotify_init();
-    if (fileDescriptor < 0)
+    InotifyDirectory dir("/home/andrei/test",
+                         IN_MODIFY | IN_CREATE | IN_DELETE);
+    
+    std::vector<int> fds; 
+    fds.push_back(dir.fileDescriptor());
+    std::vector<int> readyFds = pollWrapper(fds, 10000);
+    if (readyFds.size() == 0)
     {
-        perror("inotify_init");
+        std::cout << "There have been no events\n";
     }
-
-    writeDescriptor = inotify_add_watch(
-                        fileDescriptor,
-                        "/home/andrei/test",
-                        IN_MODIFY | IN_CREATE | IN_DELETE);
-    //read the data
-    //this code will be in the read method
-    length = read(fileDescriptor,
-                  buffer,
-                  BUFFER_SIZE);
-
-    if (length < 0)
+    else
     {
-        perror("read");
-    }
+        //read the data
+        length = read(fds[0],
+                      buffer,
+                      BUFFER_SIZE);
 
-    while (i < length)
-    {
-        struct inotify_event* event = (struct inotify_event*)(&buffer[i]);
-        if (event->mask & IN_CREATE)
+        if (length < 0)
         {
-            std::cout << event->name << " was created\n";
-        }
-        else if (event->mask & IN_DELETE)
-        {
-            std::cout << event->name << " was deleted\n";
-        }
-        else if (event->mask & IN_MODIFY)
-        {
-            std::cout << event->name << " was modified\n";
+            perror("read");
         }
 
-        i += EVENT_SIZE + event->len;
+        while (i < length)
+        {
+            struct inotify_event* event = (struct inotify_event*)(&buffer[i]);
+            if (event->mask & IN_CREATE)
+            {
+                std::cout << event->name << " was created\n";
+            }
+            else if (event->mask & IN_DELETE)
+            {
+                std::cout << event->name << " was deleted\n";
+            }
+            else if (event->mask & IN_MODIFY)
+            {
+                std::cout << event->name << " was modified\n";
+            }
+
+            i += EVENT_SIZE + event->len;
+        }
     }
 
-    inotify_rm_watch(fileDescriptor, writeDescriptor);
-    close(fileDescriptor);
     return 0;
 }
