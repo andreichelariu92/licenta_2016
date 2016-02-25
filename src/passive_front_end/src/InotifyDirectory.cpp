@@ -2,6 +2,7 @@
 
 #include <sys/inotify.h>
 #include <unistd.h>
+#include <errno.h>
 
 //INSPIRATION:
 //http://www.ibm.com/developerworks/library/l-ubuntu-inotify/
@@ -16,7 +17,22 @@ InotifyDirectory::InotifyDirectory(std::string path, unsigned mask)
     fileDescriptor_ = inotify_init();
     if (fileDescriptor_ < 0)
     {
-        InotifyException e("error on inotify_init()");
+        std::string errorMessage;
+        if (errno == EMFILE)
+        {
+            errorMessage = "limit of inotify instances ";
+            errorMessage += "has been reached";
+        }
+        else if (errno == ENFILE)
+        {
+            errorMessage = "limit of file descriptors ";
+            errorMessage += "has been reached";
+        }
+        else
+        {
+            errorMessage = "error on inotify_init()";
+        }
+        InotifyException e(errorMessage);
         throw e;
     }
     //create write descriptor, only
@@ -31,7 +47,21 @@ InotifyDirectory::InotifyDirectory(std::string path, unsigned mask)
         //before exiting the function
         //via throwing of exception
         close(fileDescriptor_);
-        InotifyException e("error on inotify_add_watch()");
+        
+        std::string errorMessage;
+        if (errno == EBADF)
+        {
+            errorMessage = "file descriptor is not valid";
+        }
+        else if (errno == ENOENT)
+        {
+            errorMessage = "path name is not valid";
+        }
+        else
+        {
+            errorMessage = "error on inotify_add_watch()";
+        }
+        InotifyException e(errorMessage);
         throw e;
     }
 }
