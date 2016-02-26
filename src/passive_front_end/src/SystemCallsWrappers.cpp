@@ -2,47 +2,46 @@
 
 #include <poll.h>
 
-std::vector<int> pollWrapper(std::vector<int> fds,
-                             int timeout,
-                             unsigned flags)
+using std::vector;
+void pollInotifyDirectories(vector<InotifyDirectory>& directories,
+                            unsigned flags,
+                            int timeout)
 {
     //vector that holds the structures passed
     //to the poll sistem call
     std::vector<struct pollfd> pollFileDescriptors;
-    pollFileDescriptors.resize(fds.size());
+    pollFileDescriptors.resize(directories.size());
    
     //populate the structures
-    const int numFds = fds.size();
+    const int numFds = directories.size();
     for (int i = 0; i < numFds; ++i)
     {
-        pollFileDescriptors[i].fd = fds[i];
+        pollFileDescriptors[i].fd = directories[i].fileDescriptor();
         pollFileDescriptors[i].events = flags;
     }
     //perform poll system call
-    int nrReadyFileDescriptors = poll(&pollFileDescriptors[0],
+    int nrReadyFds = poll(&pollFileDescriptors[0],
                                       pollFileDescriptors.size(),
                                       timeout);
-    
-    //put the ready file descriptors in a vector
-    std::vector<int> readyFileDescriptors;
-    if (nrReadyFileDescriptors)
+    //mark the ready InotifyDirectories
+    //as unblocking
+    for (int fdIdx = 0; fdIdx < nrReadyFds; ++fdIdx)
     {
-        readyFileDescriptors.resize(nrReadyFileDescriptors);
-        int j = 0;
-        for (int i = 0; i < numFds; ++i)
+        if (pollFileDescriptors[fdIdx].revents != 0)
         {
-            if (pollFileDescriptors[i].revents != 0)
+            //find the InotifyDirectory with the
+            //corresponding fd
+            for (unsigned int dirIdx = 0; 
+                 dirIdx < directories.size(); 
+                 ++dirIdx)
             {
-                readyFileDescriptors[j] = pollFileDescriptors[i].fd;
-                j++;
+                if (directories[dirIdx].fileDescriptor()
+                    ==
+                    pollFileDescriptors[fdIdx].fd)
+                {
+                    directories[dirIdx].unblock();
+                }
             }
-            //exit the loop when all the ready
-            //file descriptors have been added to
-            //the vector
-            if (j >= nrReadyFileDescriptors)
-                break;
         }
     }
-
-    return readyFileDescriptors;
 }
