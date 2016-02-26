@@ -24,6 +24,7 @@ $(PROJECT): buildrepo $(OBJS)
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.cpp
 	$(CC) $(OPTS) -c $< -o $@
+	ctags -f ./tags -R ./src/*
 
 clean:
 	rm $(PROJECT) $(OBJDIR) -Rf
