@@ -28,17 +28,17 @@ int main()
     InotifyDirectory dir("/home/andrei/test",
                          IN_MODIFY | IN_CREATE | IN_DELETE);
     
-    std::vector<int> fds; 
-    fds.push_back(dir.fileDescriptor());
-    std::vector<int> readyFds = pollWrapper(fds, 10000);
-    if (readyFds.size() == 0)
+    std::vector<InotifyDirectory> dirs; 
+    dirs.push_back(std::move(dir));
+    pollInotifyDirectories(dirs, POLLIN, 10000);
+    if (dirs[0].blocking() == true)
     {
         std::cout << "There have been no events\n";
     }
     else
     {
         //read the data
-        length = read(fds[0],
+        length = read(dirs[0].fileDescriptor(),
                       buffer,
                       BUFFER_SIZE);
 
