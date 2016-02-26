@@ -3,6 +3,7 @@
 
 #include <string>
 #include <exception>
+#include <vector>
 
 ///Class that uses the inotify API
 ///to listen for filesystem events
@@ -14,6 +15,17 @@ private:
     int fileDescriptor_;
     int watchDescriptor_;
     std::string path_;
+    bool blocking_;
+    ///mark the current instance as non blocking
+    ///can only be set by the friend function
+    ///pollInotifyDirectories
+    void unblock()
+    {
+        blocking_ = false;
+    }
+    friend void pollInotifyDirectories(std::vector<InotifyDirectory>& v,
+                                       unsigned mask,
+                                       int timeout);
 public:
     InotifyDirectory(std::string path, unsigned mask);
     ///copy operations are not permited
@@ -41,6 +53,17 @@ public:
     {
         return path_;
     }
+    ///access the blocking flag
+    bool blocking()
+    {
+        return blocking_;
+    }
+    ///mark the current instance
+    ///as blocking for an upcomming read
+    void block()
+    {
+        blocking_ = true;
+    }
 };
 
 ///Class that represents an error occured
@@ -59,4 +82,6 @@ public:
         return message_.c_str();
     }
 };
+
+///function that 
 #endif

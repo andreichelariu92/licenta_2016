@@ -10,7 +10,8 @@
 InotifyDirectory::InotifyDirectory(std::string path, unsigned mask)
     :fileDescriptor_(0),
      watchDescriptor_(0),
-     path_(path)
+     path_(path),
+     blocking_(true)
 
 {
     //create file descriptor
@@ -69,7 +70,8 @@ InotifyDirectory::InotifyDirectory(std::string path, unsigned mask)
 InotifyDirectory::InotifyDirectory(InotifyDirectory&& source)
     :fileDescriptor_(source.fileDescriptor_),
      watchDescriptor_(source.watchDescriptor_),
-     path_(source.path_)
+     path_(source.path_),
+     blocking_(source.blocking_)
 {
     //steal the file descriptor and the
     //watch descriptor from the source
@@ -91,8 +93,10 @@ InotifyDirectory& InotifyDirectory::operator=
     //watch descriptor from the source
     fileDescriptor_ = source.fileDescriptor_;
     watchDescriptor_ = source.watchDescriptor_;
+    blocking_ = source.blocking_;
     source.fileDescriptor_ = 0;
     source.watchDescriptor_ = 0;
+    source.blocking_ = true;
     
     return *this;
 }
