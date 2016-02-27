@@ -1,14 +1,21 @@
+//standard library headers
 #include <iostream>
+#include <vector>
+#include <chrono>
+#include <thread>
+//OS headers
 #include <errno.h>
 #include <unistd.h>
 #include <sys/types.h>
 #include <sys/inotify.h>
-
+#include <poll.h>
+//my headers
 #include "InotifyDirectory.h"
 #include "SystemCallsWrappers.h"
+#include "Directory.h"
 
-#include <vector>
-#include <poll.h>
+using std::vector;
+using std::string;
 
 int main()
 {
@@ -16,7 +23,7 @@ int main()
     //http://www.ibm.com/developerworks/library/l-ubuntu-inotify/
     
     //TO DO: Andrei: Test more carefully
-    
+    /*
     //data for the inotify API
     //members of the wrapper class
     constexpr int EVENT_SIZE = sizeof(struct inotify_event);
@@ -66,6 +73,21 @@ int main()
             i += EVENT_SIZE + event->len;
         }
     }
+    */
+    Directory d("/home/andrei");
+    vector<string> files = d.regularFiles();
+    for (string file : files)
+    {
+        std::cout << file << "\n";
+    }
+    std::this_thread::sleep_for (std::chrono::seconds(10)); 
+    vector<Directory> dirs = d.subDirectories();
+    for (Directory& dir : dirs)
+    {
+        std::cout << dir.path() << "\n";
+    }
 
+    std::cout << isRegularFile("/home/andrei/main.cpp") << "\n";
+    std::cout << isDirectory("/home/andrei") << "\n";
     return 0;
 }
