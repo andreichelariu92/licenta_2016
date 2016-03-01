@@ -9,13 +9,14 @@
 #include <sys/types.h>
 #include <sys/inotify.h>
 #include <poll.h>
+#include <limits.h>
 //my headers
-#include "InotifyDirectory.h"
-#include "SystemCallsWrappers.h"
 #include "Directory.h"
+#include "InotifyInstance.h"
 
 using std::vector;
 using std::string;
+using std::cout;
 
 int main()
 {
@@ -74,6 +75,7 @@ int main()
         }
     }
     */
+    /*
     Directory d("/home/andrei");
     vector<string> files = d.regularFiles();
     for (string file : files)
@@ -89,5 +91,34 @@ int main()
 
     std::cout << isRegularFile("/home/andrei/main.cpp") << "\n";
     std::cout << isDirectory("/home/andrei") << "\n";
+    */
+    InotifyInstance ii;
+    Directory d("/home/andrei/windows");
+    vector<Directory> subDirs = d.subDirectories();
+    vector<int> wds;
+    for (Directory& subDir : subDirs)
+    {
+        //cout << subDir.path() << "\n";
+        int wd = ii.addToWatch(subDir.path(),
+                      IN_CREATE | IN_DELETE | IN_MODIFY);
+        wds.push_back(wd);
+    }
+    vector<InotifyEvent> events = ii.readEvents(10000);
+    for (InotifyEvent& event : events)
+    {
+        cout << event.path;
+        if (event.mask & IN_DELETE)
+        {
+            cout << " was deleted\n";
+        }
+        else if (event.mask & IN_CREATE)
+        {
+            cout << " was created\n";
+        }
+        else if (event.mask & IN_MODIFY)
+        {
+            cout << " was modified\n";
+        }
+    }
     return 0;
 }
