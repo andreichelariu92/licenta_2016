@@ -79,9 +79,68 @@ bool InotifyInstance::removeFromWatch(int wd)
         return false;
     }
 }
+bool InotifyInstance::performPoll(int timeout)
+{
+    //prepare the structure for the poll function
+    struct pollfd pollStruct;
+    pollStruct.fd = fd_;
+    //only interested in reading data
+    pollStruct.events = POLLIN;
+
+    int ready = poll(&pollStruct, 1, timeout);
+    if (ready)
+        return true;
+    else
+        return false;
+}
+vector<InotifyEvent> InotifyInstance::readEvents(int timeout)
+{
+    vector<InotifyEvent> events;
+    bool dataReady = performPoll(timeout);
+    if (!dataReady)
+    {
+        //if there is no data ready,
+        //return en empty vector
+        return events;
+    }
+    //read 256 events in an auxiliary buffer
+    constexpr int EVENT_SIZE = sizeof(struct inotify_event);
+    //the buffer must hold 256 inotify_event structures
+    //and the name for every file; the name can be
+    //of maximum NAME_MAX bytes
+    constexpr int BUF_LEN = 256 * (EVENT_SIZE + NAME_MAX);
+    char buffer[BUF_LEN];
+    int offset = 0;
+    
+    int length = read(fd_, buffer, BUF_LEN);
+    while (offset < length)
+    {
+        //convert the bytes at the offset
+        //to an inotify_event structure
+        //and get the addres of that structure
+        //in the variable event
+        struct inotify_event* event = 
+            reinterpret_cast<struct inotify_event*>(&buffer[offset]);
+        InotifyEvent iEvent;
+        iEvent.wd = event-> wd;
+        iEvent.mask = event->mask;
+        iEvent.path = string(event->name);
+
+        events.push_back(iEvent);
+
+        offset += EVENT_SIZE + event->len;
+    }
+
+    return events;
+}
 
 InotifyException::InotifyException(int copyOfErrno)
     :message_()
 {
-    //TODO: Andrei: Implement :)
+    if (copyOfErrno == EMFILE 
+        && copyOfErrno == ENFILE
+        && copyOfErrno == ENOMEM)
+    {
+        message_ = "Too many file descriptors";
+    }
 }

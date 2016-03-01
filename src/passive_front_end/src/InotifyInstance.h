@@ -5,12 +5,21 @@
 #include <sys/inotify.h>
 //my headers
 
+struct InotifyEvent
+{
+    int wd;
+    unsigned int mask;
+    std::string path;
+};
 
 class InotifyInstance
 {
 private:
     int fd_;
     std::vector<int> vectorWd_;
+    ///call the poll function from the Linux API
+    ///returns true if data is ready to read
+    bool performPoll(int timeout);
 public:
     ///default constructor
     ///throws InotifyException
@@ -37,7 +46,7 @@ public:
     ///reads from the InotifyInstance the events generated
     ///on the watch descriptors
     ///the function uses poll internally
-    //std::vector<struct inotify_event> readEvents(int timeout);
+    std::vector<InotifyEvent> readEvents(int timeout);
 };
 
 class InotifyException : public std::exception
