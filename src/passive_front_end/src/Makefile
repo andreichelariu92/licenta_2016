@@ -10,8 +10,8 @@ OPTS = -std=c++11 -c -Wall -g
 PROJECT = passive_front_end
 
 #Directories
-OBJDIR = obj
-SRCDIR = src
+OBJDIR = ../obj
+SRCDIR = .
 
 #Files and folders
 SRCS = $(shell find $(SRCDIR) -name '*.cpp')
@@ -21,10 +21,11 @@ OBJS = $(patsubst $(SRCDIR)/%.cpp, $(OBJDIR)/%.o, $(SRCS))
 #Targets
 $(PROJECT): buildrepo $(OBJS)
 	$(CC) $(OBJS) -o $@
+	mv $(PROJECT) ../
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.cpp
 	$(CC) $(OPTS) -c $< -o $@
-	ctags -f ./tags -R ./src/*
+	ctags -f ./tags -R ./*
 
 clean:
 	rm $(PROJECT) $(OBJDIR) -Rf
