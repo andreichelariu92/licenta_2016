@@ -78,11 +78,29 @@ vector<Directory> Directory::subDirectories()
         //if the current entry is a directory
         if (dirEntry->d_type == DT_DIR)
         {
-            //create a Directory function and
-            //add it to the vector
-            string subDirPath = path_ + "/" + dirEntry->d_name;
-            Directory subDir(subDirPath);
-            subDirs.push_back(std::move(subDir));
+            string dirName(dirEntry->d_name);
+            if (dirName != "." &&
+                dirName != "..")
+            {
+                //create a Directory function and
+                //add it to the vector
+                string subDirPath = path_ + "/" + dirEntry->d_name;
+                //add the subDir only if there
+                //is no exception
+                try
+                {
+                    Directory subDir(subDirPath);
+                    subDirs.push_back(std::move(subDir));
+                }
+                catch(DirectoryException& de)
+                {
+                    //if there is an exception,
+                    //catch it, to keep the correct
+                    //directories in the vector and
+                    //return them
+                }
+                
+            }
         }
     }
     //close the current dirStructure_
@@ -206,4 +224,29 @@ bool isDirectory(std::string path)
         //false
         return false;
     }
+}
+
+vector<Directory> getAllDirectories(string path)
+{
+    vector<Directory> output;
+    //create a directory for the given path
+    Directory root(path);
+    vector<Directory> subDirs = root.subDirectories();
+    //for all the subDirectories get their
+    //sub directories and add them to the vector,
+    //then add the sub directory itself
+    for (Directory& subDir : subDirs)
+    {
+        vector<Directory> subSubDirs =
+            getAllDirectories(subDir.path());
+        for(Directory& subSubDir : subSubDirs)
+        {
+            output.push_back(std::move(subSubDir));
+        }
+    }
+    //at the end, add the root
+    //directory
+    output.push_back(std::move(root));
+    
+    return output;
 }

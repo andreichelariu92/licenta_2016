@@ -66,6 +66,5 @@ bool isDirectory(std::string path);
 
 ///returns all the directories from the given path
 ///the function runs recursively
-//TODO
-//std::vector<Directory> getAllDirectories(std::string path);
+std::vector<Directory> getAllDirectories(std::string path);
 #endif
