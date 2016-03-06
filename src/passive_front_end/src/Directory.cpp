@@ -18,11 +18,17 @@ Directory::Directory(std::string path)
         DirectoryException e(errno);
         throw e;
     }
+    
+    //close the directory, to avoid
+    //having too many directories opened
+    //at the same time
+    closedir(dirStructure_);
+    dirStructure_ = 0;
 }
 
 Directory::Directory(Directory&& source)
     :path_(source.path_),
-     dirStructure_(source.dirStructure_)
+     dirStructure_(std::move(source.dirStructure_))
 {
     //mark the source as empty, to
     //avoid the source being cleared
@@ -34,7 +40,7 @@ Directory::Directory(Directory&& source)
 Directory& Directory::operator=(Directory&& source)
 {
     path_ = source.path_;
-    dirStructure_ = source.dirStructure_;
+    dirStructure_ = std::move(source.dirStructure_);
     //mark the source as empty, to
     //avoid the source being cleared
     //by its destructor
@@ -76,7 +82,8 @@ vector<Directory> Directory::subDirectories()
     while ((dirEntry = readdir(dirStructure_)) != 0)
     {
         //if the current entry is a directory
-        if (dirEntry->d_type == DT_DIR)
+        if (dirEntry->d_type == DT_DIR ||
+            dirEntry->d_type == DT_UNKNOWN)
         {
             string dirName(dirEntry->d_name);
             if (dirName != "." &&
