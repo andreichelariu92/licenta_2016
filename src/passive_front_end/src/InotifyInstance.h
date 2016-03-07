@@ -39,7 +39,8 @@ public:
     ///path to the InotifyInstance
     ///mask specifies which events are listened
     ///returns the watch descriptor from inotify API
-    int addToWatch(std::string path, unsigned mask);
+    int addToWatch(std::string path, 
+            unsigned mask = IN_CREATE|IN_DELETE|IN_MODIFY);
     ///removes a watch descriptor from the instance
     ///returns true or false if the operation succeeded
     bool removeFromWatch(int wd);
