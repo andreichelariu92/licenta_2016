@@ -3,6 +3,7 @@
 #include <vector>
 #include <chrono>
 #include <thread>
+#include <map>
 //OS headers
 #include <errno.h>
 #include <unistd.h>
@@ -17,6 +18,7 @@
 using std::vector;
 using std::string;
 using std::cout;
+using std::map;
 
 int main()
 {
@@ -76,10 +78,45 @@ int main()
     }
     */
     
-    vector<Directory> dirs = getAllDirectories("/home/andrei/windows/Andrei/Facultate");
+    vector<Directory> dirs = getAllDirectories("/home/andrei/windows/Andrei/Facultate/anIV");
+    map<int, Directory> watchedDirectories;
+    InotifyInstance inotify;
     for (Directory& dir : dirs)
     {
-        cout << dir.path() << "\n";
+        int wd = inotify.addToWatch(dir.path());
+
+        if (wd > 0)
+        {
+            //add to the watched directories
+            //the current one;
+            //the directory will be moved from
+            //the vector to the map
+            watchedDirectories.insert(
+                    std::make_pair<int, Directory>(
+                        std::move(wd), std::move(dir)));
+        }
+    }
+    constexpr int minute = 60000;
+    int nrMinutes = 0;
+    while (nrMinutes < 5)
+    {
+        cout << "Minute " << nrMinutes + 1 << "\n";
+        vector<InotifyEvent> events = inotify.readEvents(minute);
+        for (InotifyEvent event : events)
+        {
+            cout << "parent directory: "
+                 << watchedDirectories.at(event.wd).path()
+                 << " file/dir name: "
+                 << event.path
+                 << "event type: ";
+            if (event.mask & IN_CREATE)
+                cout << "CREATE\n";
+            else if (event.mask & IN_DELETE)
+                cout << "DELETE\n";
+            else
+                cout << "MODIFY\n";
+        }
+        ++nrMinutes;
     }
     return 0;
 }
