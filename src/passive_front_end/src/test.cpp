@@ -12,8 +12,7 @@
 #include <poll.h>
 #include <limits.h>
 //my headers
-#include "Directory.h"
-#include "InotifyInstance.h"
+#include "DirectoryWatcher.h"
 
 using std::vector;
 using std::string;
@@ -22,101 +21,51 @@ using std::map;
 
 int main()
 {
-    //INSPIRATION:
-    //http://www.ibm.com/developerworks/library/l-ubuntu-inotify/
-    
-    //TO DO: Andrei: Test more carefully
-    /*
-    //data for the inotify API
-    //members of the wrapper class
-    constexpr int EVENT_SIZE = sizeof(struct inotify_event);
-    constexpr int BUFFER_SIZE = 1024 * (EVENT_SIZE + 16);
-    char buffer[BUFFER_SIZE];
-    int length = 0;
-    int i = 0;
-    
-    InotifyDirectory dir("/home/andrei/test",
-                         IN_MODIFY | IN_CREATE | IN_DELETE);
-    
-    std::vector<InotifyDirectory> dirs; 
-    dirs.push_back(std::move(dir));
-    pollInotifyDirectories(dirs, POLLIN, 10000);
-    if (dirs[0].blocking() == true)
-    {
-        std::cout << "There have been no events\n";
-    }
-    else
-    {
-        //read the data
-        length = read(dirs[0].fileDescriptor(),
-                      buffer,
-                      BUFFER_SIZE);
-
-        if (length < 0)
-        {
-            perror("read");
-        }
-
-        while (i < length)
-        {
-            struct inotify_event* event = (struct inotify_event*)(&buffer[i]);
-            if (event->mask & IN_CREATE)
-            {
-                std::cout << event->name << " was created\n";
-            }
-            else if (event->mask & IN_DELETE)
-            {
-                std::cout << event->name << " was deleted\n";
-            }
-            else if (event->mask & IN_MODIFY)
-            {
-                std::cout << event->name << " was modified\n";
-            }
-
-            i += EVENT_SIZE + event->len;
-        }
-    }
-    */
-    
-    vector<Directory> dirs = getAllDirectories("/home/andrei/windows/Andrei/Facultate/anIV");
-    map<int, Directory> watchedDirectories;
-    InotifyInstance inotify;
-    for (Directory& dir : dirs)
-    {
-        int wd = inotify.addToWatch(dir.path());
-
-        if (wd > 0)
-        {
-            //add to the watched directories
-            //the current one;
-            //the directory will be moved from
-            //the vector to the map
-            watchedDirectories.insert(
-                    std::make_pair<int, Directory>(
-                        std::move(wd), std::move(dir)));
-        }
-    }
+    //test results
+    //63.7 MB consumed -> 590.5 MB file hierarchy
+    //215.1 MB consumed -> 13.263 GB file hierarchy
+    //
+    //test hierarchy:
+    //test
+    //  /dir1
+    //      file1
+    //      /dir2
+    //          file2
+    DirectoryWatcher dw("/home/andrei/test");
     constexpr int minute = 60000;
-    int nrMinutes = 0;
-    while (nrMinutes < 5)
+    for (unsigned int minuteIdx = 0;
+         minuteIdx < 5;
+         ++minuteIdx)
     {
-        cout << "Minute " << nrMinutes + 1 << "\n";
-        vector<InotifyEvent> events = inotify.readEvents(minute);
-        for (InotifyEvent event : events)
+        cout << "Minute: " << minuteIdx + 1 << "\n";
+        vector<FileEvent> fEvents = dw.readEvents(minute);
+
+        for (FileEvent& fEvent : fEvents)
         {
-            cout << "parent directory: "
-                 << watchedDirectories.at(event.wd).path()
-                 << " file/dir name: "
-                 << event.path
-                 << "event type: ";
-            if (event.mask & IN_CREATE)
-                cout << "CREATE\n";
-            else if (event.mask & IN_DELETE)
-                cout << "DELETE\n";
-            else
-                cout << "MODIFY\n";
+            cout << fEvent.absolutePath << " ";
+            switch (fEvent.fileType)
+            {
+                case FileType::file:
+                    cout << "file ";
+                    break;
+                case FileType::directory:
+                    cout << "dir ";
+                    break;
+            }
+            switch (fEvent.eventType)
+            {
+                case EventType::create:
+                    cout << "create ";
+                    break;
+                case EventType::modified:
+                    cout << "modified ";
+                    break;
+                case EventType::deleted:
+                    cout <<"deleted ";
+                    break;
+            }
+            cout << "\n";
         }
-        ++nrMinutes;
     }
     return 0;
 }
