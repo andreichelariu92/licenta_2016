@@ -1,3 +1,5 @@
+#ifndef InotifyInstance_INCLUDE_GUARD
+#define InotifyInstance_INCLUDE_GUARD
 //standard library headers
 #include <vector>
 #include <string>
@@ -27,7 +29,7 @@ public:
     InotifyInstance();
     ///inhibit copy operations
     InotifyInstance(const InotifyInstance& source) = delete;
-    InotifyInstance& operator=(const InotifyInstance) = delete;
+    InotifyInstance& operator=(const InotifyInstance& source) = delete;
     ///move operations
     InotifyInstance(InotifyInstance&& source);
     InotifyInstance& operator=(InotifyInstance&& source);
@@ -40,7 +42,7 @@ public:
     ///mask specifies which events are listened
     ///returns the watch descriptor from inotify API
     int addToWatch(std::string path, 
-            unsigned mask = IN_CREATE|IN_DELETE|IN_MODIFY);
+            unsigned mask = IN_CREATE|IN_DELETE|IN_MODIFY|IN_DELETE_SELF|IN_MOVE);
     ///removes a watch descriptor from the instance
     ///returns true or false if the operation succeeded
     bool removeFromWatch(int wd);
@@ -61,3 +63,4 @@ public:
         return message_.c_str();
     }
 };
+#endif
