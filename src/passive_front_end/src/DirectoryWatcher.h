@@ -24,14 +24,14 @@ enum class EventType
 
 struct FileEvent
 {
-    std::string absoultePath;
+    std::string absolutePath;
     FileType fileType;
     EventType eventType;
 
     FileEvent(std::string absPath,
               FileType ft,
               EventType et)
-        :absoultePath(absPath),
+        :absolutePath(absPath),
          fileType(ft),
          eventType(et)
     {}
@@ -44,6 +44,7 @@ class DirectoryWatcher
 private:
     std::map<int, Directory> watchedDirectories_;
     InotifyInstance inotify_;
+    void registerDirectories(std::string rootDir);
 public:
     ///constructor
     DirectoryWatcher(std::string rootDir);

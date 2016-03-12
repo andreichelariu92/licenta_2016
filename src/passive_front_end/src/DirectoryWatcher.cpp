@@ -1,5 +1,6 @@
 //standard library headers
 #include <utility>
+#include <iostream>
 //OS headers
 //my headers
 #include "DirectoryWatcher.h"
@@ -7,10 +8,16 @@
 using std::vector;
 using std::pair;
 using std::string;
+using std::cout;
 
 DirectoryWatcher::DirectoryWatcher(string rootDir)
     :watchedDirectories_(),
      inotify_()
+{
+    registerDirectories(rootDir);
+}
+
+void DirectoryWatcher::registerDirectories(string rootDir)
 {
     //get all the directories in the file hierarchy
     //starting at rootDir
@@ -59,7 +66,7 @@ vector<FileEvent> DirectoryWatcher::readEvents(int timeout)
         string absolutePath = parentDir.path() + "/" + iEvent.path;
 
         FileType fileType;
-        if (isDirectory(absolutePath))
+        if (iEvent.mask & IN_ISDIR)
         {
             fileType = FileType::directory;
         }
@@ -73,9 +80,9 @@ vector<FileEvent> DirectoryWatcher::readEvents(int timeout)
         {
             if (fileType == FileType::directory)
             {
-                //TODO : Andrei
                 //add the directory and its contents
                 //to watchedDirectories_
+                registerDirectories(absolutePath);
             }
             eventType = EventType::create;
         }
@@ -83,17 +90,11 @@ vector<FileEvent> DirectoryWatcher::readEvents(int timeout)
         {
             eventType = EventType::modified;
         }
-        else
+        else if (iEvent.mask & IN_DELETE_SELF ||
+                 iEvent.mask & IN_DELETE)
         {
-            if (fileType == FileType::directory)
-            {
-                //TODO: Andrei
-                //check if the wd are removed automatically
-                //if not, remove them from inotify instance
-            }
             eventType = EventType::deleted;
         }
-
         FileEvent fEvent(absolutePath, fileType, eventType);
         fEvents.push_back(fEvent);
     }
