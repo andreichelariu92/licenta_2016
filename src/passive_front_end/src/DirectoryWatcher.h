@@ -5,6 +5,7 @@
 #include <map>
 #include <string>
 #include <vector>
+#include <set>
 //my headers
 #include "Directory.h"
 #include "InotifyInstance.h"
@@ -17,9 +18,12 @@ enum class FileType
 
 enum class EventType
 {
+    invalid = -1,
     create = 0,
     modified = 1,
-    deleted = 2
+    deleted = 2,
+    movedFrom = 3,
+    movedTo = 4
 };
 
 struct FileEvent
@@ -43,8 +47,10 @@ class DirectoryWatcher
 {
 private:
     std::map<int, Directory> watchedDirectories_;
+    std::set<std::string> directoryNames_;
     InotifyInstance inotify_;
     void registerDirectories(std::string rootDir);
+    EventType getEventType(const InotifyEvent& iEvent);
 public:
     ///constructor
     DirectoryWatcher(std::string rootDir);
