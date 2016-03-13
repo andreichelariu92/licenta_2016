@@ -11,6 +11,7 @@ struct InotifyEvent
 {
     int wd;
     unsigned int mask;
+    unsigned int cookie;
     std::string path;
 };
 

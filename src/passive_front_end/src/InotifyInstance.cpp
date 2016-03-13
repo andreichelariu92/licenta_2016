@@ -125,6 +125,7 @@ vector<InotifyEvent> InotifyInstance::readEvents(int timeout)
         iEvent.wd = event-> wd;
         iEvent.mask = event->mask;
         iEvent.path = string(event->name);
+        iEvent.cookie = event->cookie;
 
         events.push_back(iEvent);
 
