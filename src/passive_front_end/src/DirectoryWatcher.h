@@ -40,6 +40,7 @@ struct FileEvent
          eventType(et)
     {}
 };
+
 ///class that watches the files
 ///and directories inside a file
 ///hierarchy
@@ -49,8 +50,15 @@ private:
     std::map<int, Directory> watchedDirectories_;
     std::set<std::string> directoryNames_;
     InotifyInstance inotify_;
+    std::map<int, std::string> movedDirectories_;
     void registerDirectories(std::string rootDir);
     EventType getEventType(const InotifyEvent& iEvent);
+    FileType getFileType(const InotifyEvent& iEvent,
+        const std::string& absolutePath, 
+        const EventType& eventType);
+    void adjustDirectoryPaths(const std::string& source,
+            const std::string& destination);
+
 public:
     ///constructor
     DirectoryWatcher(std::string rootDir);
