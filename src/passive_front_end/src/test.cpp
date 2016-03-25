@@ -63,6 +63,12 @@ int main()
                 case EventType::deleted:
                     cout <<"deleted ";
                     break;
+                case EventType::movedFrom:
+                    cout << "moved from ";
+                    break;
+                case EventType::movedTo:
+                    cout << "moved to ";
+                    break;
             }
             cout << "\n";
         }
