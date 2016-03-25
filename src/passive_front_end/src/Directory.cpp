@@ -158,6 +158,19 @@ vector<string> Directory::regularFiles()
     return regFiles;
 
 }
+
+bool Directory::isIncluded(const std::string& argPath)
+{
+    //the directory is included if the
+    //argument path is found at the begining
+    //of the directory path:
+    //for example /home/andrei with /home
+    if (path_.find(argPath) != 0)
+        return false;
+    else
+        return true;
+}
+
 DirectoryException::DirectoryException(unsigned int errnoCopy)
     :message_()
 {
@@ -257,3 +270,6 @@ vector<Directory> getAllDirectories(string path)
     
     return output;
 }
+
+
+

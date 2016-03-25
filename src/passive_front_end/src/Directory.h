@@ -40,6 +40,16 @@ public:
     {
         return path_;
     }
+    ///set the path of the directory
+    void path(std::string argPath)
+    {
+        path_ = argPath;
+    }
+    ///returns true if the directory is included
+    ///in the path; if the path of the directory
+    ///is the same as the argument path, then the
+    ///method returns true
+    bool isIncluded(const std::string& path);
 };
 
 ///exception class that will be
