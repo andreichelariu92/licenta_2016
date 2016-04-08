@@ -48,14 +48,11 @@ class DirectoryWatcher
 {
 private:
     std::map<int, Directory> watchedDirectories_;
-    std::set<std::string> directoryNames_;
     InotifyInstance inotify_;
-    std::map<int, std::string> movedDirectories_;
+    std::map<int, std::string> movedFiles_;
     void registerDirectories(std::string rootDir);
     EventType getEventType(const InotifyEvent& iEvent);
-    FileType getFileType(const InotifyEvent& iEvent,
-        const std::string& absolutePath, 
-        const EventType& eventType);
+    FileType getFileType(const InotifyEvent& iEvent);
     void adjustDirectoryPaths(const std::string& source,
             const std::string& destination);
 

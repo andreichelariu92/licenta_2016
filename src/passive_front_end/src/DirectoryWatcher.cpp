@@ -8,14 +8,13 @@
 using std::vector;
 using std::pair;
 using std::string;
-using std::cout;
+using std::cerr;
 using std::map;
 
 DirectoryWatcher::DirectoryWatcher(string rootDir)
     :watchedDirectories_(),
-     directoryNames_(),
      inotify_(),
-     movedDirectories_()
+     movedFiles_()
 {
     registerDirectories(rootDir);
 }
@@ -32,7 +31,6 @@ void DirectoryWatcher::registerDirectories(string rootDir)
         int wd = inotify_.addToWatch(dir.path());
         if (wd > 0)
         {
-            directoryNames_.insert(string(dir.path()));
             pair<int, Directory> p(std::move(wd), std::move(dir));
             watchedDirectories_.insert(std::move(p));
         }
@@ -41,9 +39,8 @@ void DirectoryWatcher::registerDirectories(string rootDir)
 
 DirectoryWatcher::DirectoryWatcher(DirectoryWatcher&& source)
     : watchedDirectories_(std::move(source.watchedDirectories_)),
-      directoryNames_(std::move(source.directoryNames_)),
       inotify_(std::move(source.inotify_)),
-      movedDirectories_(std::move(source.movedDirectories_))
+      movedFiles_(std::move(source.movedFiles_))
 {
 }
 
@@ -51,9 +48,8 @@ DirectoryWatcher& DirectoryWatcher::operator=(
         DirectoryWatcher&& source)
 {
     watchedDirectories_ = std::move(source.watchedDirectories_);
-    directoryNames_ = std::move(source.directoryNames_);
     inotify_ = std::move(source.inotify_);
-    movedDirectories_ = std::move(source.movedDirectories_);
+    movedFiles_ = std::move(source.movedFiles_);
     return *this;
 }
 
@@ -83,39 +79,14 @@ EventType DirectoryWatcher::getEventType(const InotifyEvent& iEvent)
 
     return eventType;
 }
-FileType DirectoryWatcher::getFileType(const InotifyEvent& iEvent,
-        const string& absolutePath, const EventType& eventType)
+FileType DirectoryWatcher::getFileType(const InotifyEvent& iEvent)
 {
     FileType fileType;
-
-    if (eventType == EventType::create)
-    {
-        //use IN_ISDIR only in the case the file
-        //was created
-        //in the other cases use the map, beacuse
-        //it is more reliable
-        if (iEvent.mask & IN_ISDIR)
-        {
-            fileType = FileType::directory;
-        }
-        else
-        {
-            fileType = FileType::file;
-        }
-    }
+    
+    if (iEvent.mask & IN_ISDIR)
+        fileType = FileType::directory;
     else
-    {
-        if (directoryNames_.find(absolutePath) !=
-                directoryNames_.end())
-        {
-            fileType = FileType::directory;
-        }
-        else
-        {
-            fileType = FileType::file;
-        }
-    }
-
+        fileType = FileType::file;
     return fileType;
 }
 vector<FileEvent> DirectoryWatcher::readEvents(int timeout)
@@ -129,16 +100,26 @@ vector<FileEvent> DirectoryWatcher::readEvents(int timeout)
     
     for (InotifyEvent& iEvent : iEvents)
     {
-        //get a reference to the coresponding
-        //directory
-        Directory& parentDir = watchedDirectories_.at(iEvent.wd);
+        //ignore the current inotify event if
+        //it has no directory associated in the map
+        //of watched directories
+        //this can happen when a directory was deleted
+        //but events for it are still generated
+        map<int, Directory>::iterator parentDirPosition;
+        parentDirPosition = watchedDirectories_.find(iEvent.wd);
+        if (parentDirPosition == watchedDirectories_.end())
+        {
+            continue;
+        }
+
+        //get a reference to the coresponding directory
+        Directory& parentDir = (*parentDirPosition).second;
         string absolutePath = parentDir.path() + "/" + iEvent.path;
         
         //get the event type
         EventType eventType = getEventType(iEvent);
         //get the file type
-        FileType fileType = getFileType(iEvent,
-                absolutePath, eventType);
+        FileType fileType = getFileType(iEvent);
 
         if (eventType == EventType::create &&
                 fileType == FileType::directory)
@@ -146,53 +127,49 @@ vector<FileEvent> DirectoryWatcher::readEvents(int timeout)
             //register all the subdirectories
             //of the newly created one
             registerDirectories(absolutePath);
-            //add the name to the set
-            directoryNames_.insert(absolutePath);
         }
 
-        if (eventType == EventType::deleted &&
-                fileType == FileType::directory)
-        {
-            //remove its name from the set
-            directoryNames_.erase(absolutePath);
-        }
-
-        if (eventType == EventType::movedFrom &&
-                fileType == FileType::directory)
+        if (eventType == EventType::movedFrom)
         {
             //map the cookie with the source path
-            //of the moved directory
+            //of the moved file
             const unsigned int moveCookie = iEvent.cookie;
             pair<int, string> p = 
                 std::make_pair(moveCookie, absolutePath);
-            movedDirectories_.insert(p);
+            movedFiles_.insert(p);
         }
 
         if (eventType == EventType::movedTo)
         {
            map<int, std::string>::iterator position = 
-               movedDirectories_.find(iEvent.cookie);
+               movedFiles_.find(iEvent.cookie);
 
-           if (position != movedDirectories_.end())
+           if (position != movedFiles_.end())
            {
                string source = (*position).second;
-               adjustDirectoryPaths(source, absolutePath);
+               if (fileType == FileType::directory)
+               {
+                   adjustDirectoryPaths(source, absolutePath);
+               }
            }
            else
            {
                eventType = EventType::invalid;
            }
         }
-
-        if (iEvent.mask & IN_DELETE_SELF
-                && fileType == FileType::directory)
+        
+        //if there was a self remove event for a
+        //directory, remove it from the map
+        //do not generate file event for it.
+        //it will be generated when the delete event
+        //is received by the parent directory of the
+        //deleted one
+        if (iEvent.mask & IN_DELETE_SELF)
         {
-            //if there was a self remove event for a
-            //directory, remove it from the map
-            //do not generate file event for it.
-            //it will be generated when the delete event
-            //is received by the parent directory of the
-            //deleted one
+            //TODO: Andrei: change cerr to log
+            cerr << "Debug: delete self "
+                 << absolutePath
+                 <<"\n";
             watchedDirectories_.erase(iEvent.wd);
         }
         
