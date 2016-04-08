@@ -4,6 +4,7 @@
 #include <chrono>
 #include <thread>
 #include <map>
+#include <fstream>
 //OS headers
 #include <errno.h>
 #include <unistd.h>
@@ -16,8 +17,9 @@
 
 using std::vector;
 using std::string;
-using std::cout;
+using std::cerr;
 using std::map;
+using std::ofstream;
 
 int main()
 {
@@ -34,43 +36,45 @@ int main()
     DirectoryWatcher dw("/home/andrei/test");
     constexpr int minute = 60000;
     for (unsigned int minuteIdx = 0;
-         minuteIdx < 5;
+         minuteIdx < 200;
          ++minuteIdx)
     {
-        cout << "Minute: " << minuteIdx + 1 << "\n";
+        cerr << "Minute: " << minuteIdx + 1 << "\n";
         vector<FileEvent> fEvents = dw.readEvents(minute);
 
         for (FileEvent& fEvent : fEvents)
         {
-            cout << fEvent.absolutePath << " ";
+            cerr << fEvent.absolutePath << " ";
             switch (fEvent.fileType)
             {
                 case FileType::file:
-                    cout << "file ";
+                    cerr << "file ";
                     break;
                 case FileType::directory:
-                    cout << "dir ";
+                    cerr << "dir ";
                     break;
             }
             switch (fEvent.eventType)
             {
                 case EventType::create:
-                    cout << "create ";
+                    cerr << "create ";
                     break;
                 case EventType::modified:
-                    cout << "modified ";
+                    cerr << "modified ";
                     break;
                 case EventType::deleted:
-                    cout <<"deleted ";
+                    cerr <<"deleted ";
                     break;
                 case EventType::movedFrom:
-                    cout << "moved from ";
+                    cerr << "moved from ";
                     break;
                 case EventType::movedTo:
-                    cout << "moved to ";
+                    cerr << "moved to ";
+                    break;
+                default:
                     break;
             }
-            cout << "\n";
+            cerr << "\n";
         }
     }
     return 0;
