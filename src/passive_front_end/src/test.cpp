@@ -14,6 +14,7 @@
 #include <limits.h>
 //my headers
 #include "DirectoryWatcher.h"
+#include "../../util/src/Logger.h"
 
 using std::vector;
 using std::string;
@@ -36,10 +37,12 @@ int main()
     DirectoryWatcher dw("/home/andrei/test");
     constexpr int minute = 60000;
     for (unsigned int minuteIdx = 0;
-         minuteIdx < 200;
+         minuteIdx < 2;
          ++minuteIdx)
     {
-        cerr << "Minute: " << minuteIdx + 1 << "\n";
+        LOG << Logger::trace
+            << INFO
+            << "Minute: " << minuteIdx + 1 << "\n";
         vector<FileEvent> fEvents = dw.readEvents(minute);
 
         for (FileEvent& fEvent : fEvents)

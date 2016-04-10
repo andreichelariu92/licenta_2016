@@ -7,6 +7,7 @@
 #include <limits.h>
 //my headers
 #include "InotifyInstance.h"
+#include "../../util/src/Logger.h"
 
 using std::string;
 using std::vector;
@@ -64,6 +65,12 @@ int InotifyInstance::addToWatch(string path, unsigned mask)
     {
         vectorWd_.push_back(result);
     }
+    else
+    {
+        LOG << INFO << Logger::error
+            << " error when adding "
+            << path << " to inotify\n";
+    }
     return result;
 }
 
@@ -76,6 +83,9 @@ bool InotifyInstance::removeFromWatch(int wd)
     }
     else
     {
+        LOG << INFO << Logger::error
+            << " error when removing "
+            << wd << " from inotify\n";
         return false;
     }
 }
@@ -90,8 +100,17 @@ bool InotifyInstance::performPoll(int timeout)
     int ready = poll(&pollStruct, 1, timeout);
     if (ready)
         return true;
-    else
+    else if (ready == -1)
+    {
+        LOG << INFO << Logger::error
+            << "error when performing pool "
+            << errno << "\n";
         return false;
+    }
+    else
+    {
+        return false;
+    }
 }
 vector<InotifyEvent> InotifyInstance::readEvents(int timeout)
 {

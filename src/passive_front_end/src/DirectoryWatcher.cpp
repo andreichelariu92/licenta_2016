@@ -4,6 +4,7 @@
 //OS headers
 //my headers
 #include "DirectoryWatcher.h"
+#include "../../util/src/Logger.h"
 
 using std::vector;
 using std::pair;
@@ -33,6 +34,12 @@ void DirectoryWatcher::registerDirectories(string rootDir)
         {
             pair<int, Directory> p(std::move(wd), std::move(dir));
             watchedDirectories_.insert(std::move(p));
+        }
+        else
+        {
+           LOG << INFO << Logger::error
+               << " " << dir.path()
+               << " could not be registered\n";
         }
     }
 }
@@ -91,8 +98,6 @@ FileType DirectoryWatcher::getFileType(const InotifyEvent& iEvent)
 }
 vector<FileEvent> DirectoryWatcher::readEvents(int timeout)
 {
-    //TODO: Andrei:
-    //1)Check for file move
     vector<FileEvent> fEvents;
 
     vector<InotifyEvent> iEvents =
@@ -109,6 +114,9 @@ vector<FileEvent> DirectoryWatcher::readEvents(int timeout)
         parentDirPosition = watchedDirectories_.find(iEvent.wd);
         if (parentDirPosition == watchedDirectories_.end())
         {
+            LOG << INFO << Logger::error
+                << iEvent.path << " " << iEvent.wd
+                << " has been removed from the watched dirs\n";
             continue;
         }
 
@@ -166,10 +174,10 @@ vector<FileEvent> DirectoryWatcher::readEvents(int timeout)
         //deleted one
         if (iEvent.mask & IN_DELETE_SELF)
         {
-            //TODO: Andrei: change cerr to log
-            cerr << "Debug: delete self "
-                 << absolutePath
-                 <<"\n";
+            LOG << INFO << Logger::debug 
+                << " delete self "
+                << absolutePath
+                <<"\n";
             watchedDirectories_.erase(iEvent.wd);
         }
         
@@ -177,6 +185,13 @@ vector<FileEvent> DirectoryWatcher::readEvents(int timeout)
         {
             FileEvent fEvent(absolutePath, fileType, eventType);
             fEvents.push_back(fEvent);
+        }
+        else
+        {
+            LOG << INFO << Logger::debug
+                << " event on "
+                << absolutePath
+                << " is invalid\n";
         }
     }
     

@@ -3,6 +3,7 @@
 #include <errno.h>
 //my headers
 #include "Directory.h"
+#include "../../util/src/Logger.h"
 
 using std::vector;
 using std::string;
@@ -16,6 +17,10 @@ Directory::Directory(std::string path)
     if (dirStructure_ == 0)
     {
         DirectoryException e(errno);
+        LOG << INFO << Logger::error
+            << " error opening "
+            << path
+            << "\n";
         throw e;
     }
     
@@ -69,6 +74,10 @@ vector<Directory> Directory::subDirectories()
         if (dirStructure_ == 0)
         {
             DirectoryException e(errno);
+            LOG << INFO << Logger::error
+                << " error opening "
+                << path_
+                << "\n";
             throw e;
         }
     }
@@ -129,6 +138,10 @@ vector<string> Directory::regularFiles()
         if (dirStructure_ == 0)
         {
             DirectoryException e(errno);
+            LOG << INFO << Logger::error
+                << " error opening "
+                << path_
+                << "\n";
             throw e;
         }
     }
@@ -270,6 +283,3 @@ vector<Directory> getAllDirectories(string path)
     
     return output;
 }
-
-
-
