@@ -5,6 +5,8 @@
 #include <thread>
 #include <map>
 #include <fstream>
+#include <cstdio>
+#include <memory>
 //OS headers
 #include <errno.h>
 #include <unistd.h>
@@ -15,13 +17,20 @@
 //my headers
 #include "DirectoryWatcher.h"
 #include "../../util/src/Logger.h"
+#include "FileEventServer.h"
 
 using std::vector;
 using std::string;
 using std::cerr;
 using std::map;
 using std::ofstream;
+using std::cout;
 
+void f(string s)
+{
+    cout << "Received " << s
+         << "\n";
+}
 int main()
 {
     //test results
@@ -34,7 +43,12 @@ int main()
     //      file1
     //      /dir2
     //          file2
+    /*
     DirectoryWatcher dw("/home/andrei/test");
+    boost::asio::io_service  ioService;
+    std::remove("./file2.txt");
+    UnixSocketServer<void(*)(string), 25> server("./file2.txt", ioService, f);
+
     constexpr int minute = 60000;
     for (unsigned int minuteIdx = 0;
          minuteIdx < 2;
@@ -79,6 +93,14 @@ int main()
             }
             cerr << "\n";
         }
-    }
+    }*/
+    boost::asio::io_service ioService;
+    std::remove("./file.txt");
+    typedef std::unique_ptr<UnixSocketServer> UnixSocketServer_ptr;
+    FileEventServer* fes = new FileEventServer("./file.txt",
+                                               ioService,
+                                               "/home/andrei/test");
+    UnixSocketServer_ptr server = UnixSocketServer_ptr(fes);
+    ioService.run();
     return 0;
 }
