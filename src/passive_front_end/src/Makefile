@@ -1,6 +1,8 @@
 #Sursa: http://ubuntuforums.org/showthread.php?t=1181546
 #Rugati-va sa nu se strice, ca eu nu inteleg nimic 
 #din ce scrie aici :))
+#pentru legarea cu o librarie statica:
+#http://stackoverflow.com/questions/4156055/gcc-static-linking-only-some-libraries
 
 #Compiler
 CC = g++
@@ -20,7 +22,7 @@ OBJS = $(patsubst $(SRCDIR)/%.cpp, $(OBJDIR)/%.o, $(SRCS))
 
 #Targets
 $(PROJECT): buildrepo $(OBJS)
-	$(CC) $(OBJS) -o $@
+	$(CC) $(OBJS) -L../../util -llog ../../util/liblog.a  -lboost_system -o $@ 
 	mv $(PROJECT) ../
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.cpp
