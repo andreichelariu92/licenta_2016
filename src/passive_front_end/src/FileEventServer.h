@@ -10,6 +10,7 @@
 //my headers
 #include "DirectoryWatcher.h"
 #include "../../util/src/Logger.h"
+#include "Serializer.h"
 
 #if defined(BOOST_ASIO_HAS_LOCAL_SOCKETS)
 
@@ -51,15 +52,23 @@ public:
 class FileEventServer : public UnixSocketServer
 {
 private:
+    int sendSeqNum_;
+    int receiveSeqNum_;
+    int timeout_;
+    int windowSize_;
     DirectoryWatcher directoryWatcher_;
-    
+    Serializer serializer_;
+
     void customOnAccept(const boost::system::error_code& ec)override;
     void customOnMessageReceived(const boost::system::error_code& ec,
                                  size_t nrBytes)override;
+    void sendFileEvents();
 public:
     FileEventServer(std::string socketPath,
                     boost::asio::io_service& ioService,
-                    std::string directoryPath);
+                    std::string directoryPath,
+                    int timeout = 60000,
+                    int windowSize = 5);
     //remove copy operations
     FileEventServer(const FileEventServer& source) = delete;
     FileEventServer& operator=(const FileEventServer& source)
