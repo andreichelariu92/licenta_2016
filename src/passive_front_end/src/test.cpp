@@ -18,6 +18,7 @@
 #include "DirectoryWatcher.h"
 #include "../../util/src/Logger.h"
 #include "FileEventServer.h"
+#include "Serializer.h"
 
 using std::vector;
 using std::string;
@@ -45,20 +46,19 @@ int main()
     //          file2
     /*
     DirectoryWatcher dw("/home/andrei/test");
-    boost::asio::io_service  ioService;
-    std::remove("./file2.txt");
-    UnixSocketServer<void(*)(string), 25> server("./file2.txt", ioService, f);
-
+    Serializer serializer;
     constexpr int minute = 60000;
     for (unsigned int minuteIdx = 0;
-         minuteIdx < 2;
+         minuteIdx < 5;
          ++minuteIdx)
     {
         LOG << Logger::trace
             << INFO
             << "Minute: " << minuteIdx + 1 << "\n";
         vector<FileEvent> fEvents = dw.readEvents(minute);
-
+        string result = serializer.serialize(fEvents);
+        cout << fEvents.size() << " " << result;
+        
         for (FileEvent& fEvent : fEvents)
         {
             cerr << fEvent.absolutePath << " ";
@@ -93,7 +93,10 @@ int main()
             }
             cerr << "\n";
         }
-    }*/
+        
+    }
+    */
+    
     boost::asio::io_service ioService;
     std::remove("./file.txt");
     typedef std::unique_ptr<UnixSocketServer> UnixSocketServer_ptr;
