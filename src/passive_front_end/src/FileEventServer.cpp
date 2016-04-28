@@ -2,6 +2,7 @@
 #include <vector>
 
 #include "FileEventServer.h"
+#include "../../util/src/Logger.h"
 
 using std::string;
 using std::cout;
@@ -31,8 +32,9 @@ UnixSocketServer::UnixSocketServer(string filePath,
 
 void UnixSocketServer::onAccept(const error_code& ec)
 {
-    //TODO: Andrei: log instead of STDOUT
-    std::cout << "Client connected\n";
+    LOG << INFO << Logger::trace
+        << "client connected\n";
+    
     //create wrapper for onMessageReceived method
     auto onMessageReceivedWrapper = [this](const error_code& ec,
                                            size_t nrBytes)
@@ -51,8 +53,8 @@ void UnixSocketServer::onAccept(const error_code& ec)
 void UnixSocketServer::onMessageReceived(const error_code& ec,
                                          size_t nrBytes)
 {
-    //TODO: Andrei: remove
-    cout << "UnixSocketServer::onMessageReceived\n";
+    LOG << INFO << Logger::trace
+        << "UnixSocketServer::onMessageReceived\n";
     //create wrapper for member callback
     auto onMessageReceivedWrapper = [this](const error_code& ec,
                                            size_t nrBytes)
@@ -80,8 +82,8 @@ void UnixSocketServer::onMessageReceived(const error_code& ec,
     }
     catch(...)
     {
-        //TODO: Andrei change STDOUT to log
-        cout << "File closed\n";
+        LOG << INFO << Logger::error
+            << "File closed\n";
     }
 }
 
@@ -102,19 +104,15 @@ FileEventServer::FileEventServer(string socketPath,
 
 void FileEventServer::customOnAccept(const error_code& ec)
 {
-    //TODO: Andrei: Change STDOUT to log
-    cout << "Connection established\n";
     sendFileEvents();
 }
 
 void FileEventServer::customOnMessageReceived(const error_code& ec,
                                               size_t nrBytes)
 {
-    //TODO: Andrei: change STDOUT to LOG
-    cout << "receiveSeqNum _ " << receiveSeqNum_ 
-         << " "
-         << data_.data()
-         << "\n";
+    LOG << INFO << Logger::trace
+        << "receiveSeqNum " << receiveSeqNum_ 
+        << "\n";
     ++receiveSeqNum_;
     sendFileEvents();
 }
@@ -137,9 +135,14 @@ void FileEventServer::sendFileEvents()
     {
         vector<FileEvent> fEvents = 
             directoryWatcher_.readEvents(timeout_);
-
+        
         if (fEvents.size() != 0)
         {
+            LOG << INFO << Logger::debug
+                << "file events send "
+                << fEvents.size()
+                << "\n";
+
             string message = serializer_.serialize(fEvents);
             try
             {
@@ -148,8 +151,8 @@ void FileEventServer::sendFileEvents()
             }
             catch(std::exception& e)
             {
-                //TODO: Andrei log
-                cout << e.what();
+                LOG << INFO << Logger::error
+                    << e.what();
             }
         }
     }

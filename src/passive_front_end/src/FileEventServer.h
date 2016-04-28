@@ -49,6 +49,10 @@ public:
     virtual ~UnixSocketServer()
     {}
 };
+
+///class that inherits from UnixSocketServer
+///adds its custom methods to send file
+///events to the client through unix sockets
 class FileEventServer : public UnixSocketServer
 {
 private:
