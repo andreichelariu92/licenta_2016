@@ -45,7 +45,8 @@ public:
     {
         {//enter critical section
             std::lock_guard<std::mutex> lock(m_mutex);
-            m_ofs<<data;
+            m_ofs << data;
+            m_ofs.flush();
         }//exit critical section
         return *this;
     }
@@ -56,13 +57,16 @@ public:
     {
         {//enter critical section
             std::lock_guard<std::mutex> lock(m_mutex);
-            m_ofs<<s;
+            m_ofs << s;
+            m_ofs.flush();
         }//exit critical section
         return *this;
     }
 
 
     static Logger& getInstance(std::string filename="logfile");
+
+    ~Logger();
 };
 #define LOG Logger::getInstance()
 #endif

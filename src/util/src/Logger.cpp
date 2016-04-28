@@ -29,6 +29,7 @@ Logger& Logger::operator <<(Logger::Prio data)
         default:
             break;
         }
+        m_ofs.flush();
         return *this;
  }
 Logger& Logger::operator <<(Information info)
@@ -46,7 +47,15 @@ Logger& Logger::operator <<(Information info)
     m_ofs<<info.threadId<<"  ";
     m_ofs<<info.time<<"  ";
 
+    m_ofs.flush();
+
     }//exit critical section
 
     return *this;
+}
+
+Logger::~Logger()
+{
+    m_ofs.flush();
+    m_ofs.close();
 }
