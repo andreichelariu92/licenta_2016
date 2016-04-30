@@ -17,11 +17,10 @@ int main()
     {
         boost::asio::io_service ioService;
         std::remove("./file.txt");
-        typedef std::unique_ptr<UnixSocketServer> UnixSocketServer_ptr;
-        FileEventServer* fes = new FileEventServer("./file.txt",
-                                                   ioService,
-                                                 "/home/andrei/test");
-        UnixSocketServer_ptr server = UnixSocketServer_ptr(fes);
+        FileEventSessionFactory factory("/home/andrei/test");
+        FileEventServer server(ioService,
+                               2001,
+                               factory);
         ioService.run();
     }
     catch (std::exception& e)
