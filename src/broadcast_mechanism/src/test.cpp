@@ -20,20 +20,21 @@ int main()
     };
     
     //ip of the man7.org website
-    Connection c(ioService, "213.131.240.174", 80);
+    Connection c(ioService, "213.131.240.174", 80, "connection1");
     string messageString("GET /\r\n");
-    Message_t message(messageString.begin(), messageString.end());
+    Message message(messageString, "connection1:send:1");
     c.sendMessage(message);
     std::thread t(work);
     
     unsigned int messageTry = 0;
     while (messageTry < 12)
     {
-        vector<Message_t> messages = c.receiveMessages();
+        vector<Message> messages = c.receiveMessages();
         std::cout << "Message try " << messageTry << "\n";
-        for (Message_t& m : messages)
+        for (Message& m : messages)
         {
-            for (char c : m)
+            std::cout << "MessageId = " << m.messageId << "\n";
+            for (char c : m.buffer)
             {
                 std::cout << c;
             }
