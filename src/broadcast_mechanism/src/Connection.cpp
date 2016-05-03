@@ -10,10 +10,13 @@ using boost::asio::buffer;
 
 Connection::Connection(asio::io_service& ioService,
                        string ip,
-                       int port)
+                       int port,
+                       string connectionId)
     :socket_(ioService),
      receivedMessages_(),
-     sentMessages_()
+     sentMessages_(),
+     connectionId_(connectionId),
+     messageCount_(0)
 {
     using boost::asio::ip::address;
     tcp::endpoint endPoint(address::from_string(ip), port);
@@ -24,9 +27,9 @@ Connection::Connection(asio::io_service& ioService,
 
 void Connection::prepareMessage()
 {
-    //create buffer to hold the message
+    //create message
     //for the first client
-    Message_t message(8*1024, '#');
+    Message message(getMessageId());
     receivedMessages_.push_back(std::move(message));
     //create wrapper for member function
     auto onMessageReceivedWrapper = [this](const error_code& ec,
@@ -35,7 +38,7 @@ void Connection::prepareMessage()
         this->onMessageReceived(ec, nrBytes);
     };
     //start async read operation
-    socket_.async_read_some(buffer(receivedMessages_.back()),
+    socket_.async_read_some(buffer(receivedMessages_.back().buffer),
                             onMessageReceivedWrapper);
 }
 void Connection::onMessageReceived(const error_code& ec,
@@ -44,12 +47,16 @@ void Connection::onMessageReceived(const error_code& ec,
     LOG << INFO << Logger::trace 
         << "Connection::onMessageReceived "
         << "\n";
+    
+    //TODO: Andrei: sync access on
+    //receivedMessages_
     if (!ec)
     {
-        Message_t& message = receivedMessages_.back();
+        Message& message = receivedMessages_.back();
         //resize the vetor to keep only
         //the date received from the network
-        message.resize(nrBytes);
+        message.buffer.resize(nrBytes);
+        message.complete = true;
 
         //prepare for the next message
         //to be received
@@ -68,8 +75,10 @@ void Connection::onMessageReceived(const error_code& ec,
     }
 }
 
-void Connection::sendMessage(Message_t& message)
+void Connection::sendMessage(Message& message)
 {
+    //TODO: Andrei: sync access on sentMessages_
+    
     //save the message in the internal queue
     sentMessages_.push_back(message);
     //create wrapper for callback member function
@@ -80,12 +89,13 @@ void Connection::sendMessage(Message_t& message)
     };
     
     boost::asio::async_write(socket_, 
-                             buffer(sentMessages_.back()),
+                             buffer(sentMessages_.back().buffer),
                              onMessageSentWrapper);
 }
 
 void Connection::onMessageSent(const error_code& ec, size_t nrBytes)
 {
+    //check messageId
     if (ec)
     {
         LOG << INFO << Logger::error
@@ -95,38 +105,42 @@ void Connection::onMessageSent(const error_code& ec, size_t nrBytes)
 
         //TODO: Andrei
         //add error message in receivedMessages_
+        //sync access on receivedMessages_
     }
     
+    //TODO: Andrei: sync access on sentMessages_
     sentMessages_.pop_back();
 }
 
-vector<Message_t> Connection::receiveMessages()
+vector<Message> Connection::receiveMessages()
 {
-    vector<Message_t> output;
+    //TODO: Andrei: sync access on receivedMessages_
+    vector<Message> output;
 
     while (receivedMessages_.size() != 0)
     {
-        //check if the message has been
-        //read completly(i.e. size != 8KO
-        //and first character != '#')
-        const int messageSize = receivedMessages_.front().size();
-        const char firstChar = receivedMessages_.front()[0];
-        
-        if (messageSize != 8*1024
-            &&
-            firstChar != '#')
+        if (receivedMessages_.front().complete == true)
         {
             output.push_back(receivedMessages_.front());
             receivedMessages_.pop_front();
         }
         else
         {
-            //TODO: Andrei: add message id
             LOG << INFO << Logger::trace
+                << receivedMessages_.front().messageId
                 << " the message has not been received\n";
             break;
         }
     }
 
     return output;
+}
+
+string Connection::getMessageId()
+{
+   char tempBuffer[10];
+   sprintf(tempBuffer, ":received:%d", messageCount_);
+   ++messageCount_;
+   string output(connectionId_ + string(tempBuffer));
+   return output;
 }

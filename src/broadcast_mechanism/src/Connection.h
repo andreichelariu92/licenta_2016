@@ -11,11 +11,38 @@
 //TODO: Andrei: create a message structure
 //with messageId and completion flag
 
+struct Message
+{
+    std::vector<char> buffer;
+    bool complete;
+    std::string messageId;
+    
+    Message(std::string argMessageId,
+            unsigned int messageSize = 8*1024)
+        :buffer(messageSize, ' '),
+         complete(false),
+         messageId(argMessageId)
+    {}
+
+    Message(std::vector<char> argBuffer,
+            std::string argMessageId)
+        :buffer(argBuffer),
+         complete(false),
+         messageId(argMessageId)
+    {}
+
+    Message(std::string stringBuffer,
+            std::string argMessageId)
+        :buffer(stringBuffer.begin(), stringBuffer.end()),
+         complete(false),
+         messageId(argMessageId)
+    {}
+
+};
 //namespace alias for long
 //nested namespaces in boost
 typedef boost::asio::ip::tcp tcp;
 typedef boost::system::error_code error_code;
-typedef std::vector<char> Message_t;
 
 ///Class that represent a connection
 ///to a given pair of (ip, port).
@@ -31,8 +58,10 @@ class Connection
 {
 private:
     tcp::socket socket_;
-    std::deque<Message_t> receivedMessages_;
-    std::deque<Message_t> sentMessages_;
+    std::deque<Message> receivedMessages_;
+    std::deque<Message> sentMessages_;
+    std::string connectionId_;
+    unsigned int messageCount_;
     //async operations callbacks
     void onMessageReceived(const error_code& ec, size_t nrBytes);
     void onMessageSent(const error_code& ec, size_t nrBytes);
@@ -40,10 +69,12 @@ private:
     //prepare the buffer where the next
     //message received will be saved
     void prepareMessage();
+    std::string getMessageId();
 public:
     Connection(boost::asio::io_service& ioService,
                std::string ip, 
-               int port);
+               int port,
+               std::string connectionId);
     //remove copy operations
     Connection(const Connection& source) = delete;
     Connection& operator=(const Connection& source) = delete;
@@ -53,7 +84,7 @@ public:
     //default destructor
     ~Connection() = default;
 
-    void sendMessage(Message_t& message);
-    std::vector<Message_t> receiveMessages();
+    void sendMessage(Message& message);
+    std::vector<Message> receiveMessages();
 };
 #endif
