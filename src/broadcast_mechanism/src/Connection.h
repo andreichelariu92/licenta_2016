@@ -5,11 +5,9 @@
 #include <deque>
 #include <vector>
 #include <string>
+#include <mutex>
 //boost libraries
 #include <boost/asio.hpp>
-
-//TODO: Andrei: create a message structure
-//with messageId and completion flag
 
 struct Message
 {
@@ -44,7 +42,7 @@ struct Message
 typedef boost::asio::ip::tcp tcp;
 typedef boost::system::error_code error_code;
 
-///Class that represent a connection
+///Class that represents a connection
 ///to a given pair of (ip, port).
 ///If the connection times out, an
 ///exception is being thrown in the
@@ -60,11 +58,15 @@ private:
     tcp::socket socket_;
     std::deque<Message> receivedMessages_;
     std::deque<Message> sentMessages_;
+    std::deque<Message> errorMessages_;
     std::string connectionId_;
     unsigned int messageCount_;
+    std::mutex mutex_;
     //async operations callbacks
     void onMessageReceived(const error_code& ec, size_t nrBytes);
-    void onMessageSent(const error_code& ec, size_t nrBytes);
+    void onMessageSent(const error_code& ec, 
+                       size_t nrBytes,
+                       std::string messageId);
     //other private methods
     //prepare the buffer where the next
     //message received will be saved
@@ -86,5 +88,10 @@ public:
 
     void sendMessage(Message& message);
     std::vector<Message> receiveMessages();
+
+    std::string connectionId()const
+    {
+        return connectionId_;
+    }
 };
 #endif
