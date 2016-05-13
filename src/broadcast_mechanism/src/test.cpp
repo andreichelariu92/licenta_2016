@@ -21,10 +21,10 @@ int main()
     
     //ip of the man7.org website
     Connection c(ioService, "213.131.240.174", 80, "connection1");
+    std::thread t(work);
     string messageString("GET /\r\n");
     Message message(messageString, "connection1:send:1");
     c.sendMessage(message);
-    std::thread t(work);
     
     unsigned int messageTry = 0;
     while (messageTry < 12)
