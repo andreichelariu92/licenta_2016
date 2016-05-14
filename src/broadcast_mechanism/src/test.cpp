@@ -1,4 +1,4 @@
-#include "Connection.h"
+#include "BroadcastMechanism.h"
 
 #include <iostream>
 #include <thread>
@@ -11,25 +11,27 @@ using namespace std::this_thread;
 
 int main()
 {
-    //create an io_service
-    //and start it
-    io_service ioService;
-    auto work = [&ioService]()
-    {
-        ioService.run();
-    };
-    
+    //create broadcast mechanism
+    //and add a connection to it
+    BroadcastMechanism bm(2);
     //ip of the man7.org website
-    Connection c(ioService, "213.131.240.174", 80, "connection1");
-    std::thread t(work);
+    bm.addConnection("213.131.240.174", 80, "connection1");
+    //ip of the catb.org website
+    bm.addConnection("152.19.134.41", 80, "connection2");
+
+    //send a message containing a HTTP
+    //request to all the connections
     string messageString("GET /\r\n");
     Message message(messageString, "connection1:send:1");
-    c.sendMessage(message);
+    bm.sendToAll(message);
     
+    //try multiple reads, untill
+    //the response to the request
+    //is received
     unsigned int messageTry = 0;
     while (messageTry < 12)
     {
-        vector<Message> messages = c.receiveMessages();
+        vector<Message> messages = bm.readFromAll(5000);
         std::cout << "Message try " << messageTry << "\n";
         for (Message& m : messages)
         {
@@ -40,11 +42,8 @@ int main()
             }
             std::cout << "\n";
         }
-
-        sleep_for(std::chrono::seconds(5));
         ++messageTry;
     }
 
-    t.join();
     return 0;
 }
