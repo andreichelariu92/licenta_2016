@@ -80,9 +80,9 @@ public:
     //remove copy operations
     Connection(const Connection& source) = delete;
     Connection& operator=(const Connection& source) = delete;
-    //default move operations
-    Connection(Connection&& source) = default;
-    Connection& operator=(Connection&& source) = default;
+    //remove move operations
+    Connection(Connection&& source) = delete;
+    Connection& operator=(Connection&& source) = delete;
     //default destructor
     ~Connection() = default;
 
