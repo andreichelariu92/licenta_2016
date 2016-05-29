@@ -52,16 +52,21 @@ typedef boost::system::error_code error_code;
 ///The messages received are kept in an
 ///internal message queue and can be
 ///pooled by the client code.
+
+
+//TODO: Andrei: when a connection cannot
+//send or receive messages, it should be
+//marked as closed
 class Connection
 {
 private:
     tcp::socket socket_;
     std::deque<Message> receivedMessages_;
     std::deque<Message> sentMessages_;
-    std::deque<Message> errorMessages_;
     std::string connectionId_;
     unsigned int messageCount_;
     std::mutex mutex_;
+    bool closed_;
     //async operations callbacks
     void onMessageReceived(const error_code& ec, size_t nrBytes);
     void onMessageSent(const error_code& ec, 
@@ -93,5 +98,30 @@ public:
     {
         return connectionId_;
     }
+
+    bool closed()const
+    {
+        return closed_;
+    }
 };
+
+///Class that represents a problem with
+///a connection. Every time there is a
+///problem with the Connection class, it
+///will throw an instance of this type.
+class ConnectionException : public std::exception
+{
+private:
+    std::string message_;
+public:
+    ConnectionException(std::string message)
+        :message_(message)
+    {}
+
+    const char* what() const noexcept override
+    {
+        return message_.c_str();
+    }
+};
+
 #endif

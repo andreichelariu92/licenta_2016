@@ -17,10 +17,10 @@ Connection::Connection(asio::io_service& ioService,
     :socket_(ioService),
      receivedMessages_(),
      sentMessages_(),
-     errorMessages_(),
      connectionId_(connectionId),
      messageCount_(0),
-     mutex_()
+     mutex_(),
+     closed_(false)
 {
     using boost::asio::ip::address;
     tcp::endpoint endPoint(address::from_string(ip), port);
@@ -49,11 +49,20 @@ void Connection::onMessageReceived(const error_code& ec,
                                    size_t nrBytes)
 {
     LOG << INFO << Logger::trace 
-        << "Connection::onMessageReceived "
+        << " Connection::onMessageReceived "
+        << receivedMessages_.back().messageId
+        << " "
+        << connectionId_
         << "\n";
     
     if (!ec)
     {
+        //sync access for the received messages queue,
+        //because it can be accessed by concurrent threads:
+        //the main thread calling receive messages and the
+        //other threads executing this callback function
+        lock_guard<mutex> lock(mutex_);
+
         Message& message = receivedMessages_.back();
         //resize the vetor to keep only
         //the date received from the network
@@ -66,6 +75,10 @@ void Connection::onMessageReceived(const error_code& ec,
     }
     else
     {
+        //sync access for the same reason
+        //as above
+        lock_guard<std::mutex> lock(mutex_);
+
         //remove the message because
         //an error occured
         receivedMessages_.pop_back();
@@ -74,11 +87,25 @@ void Connection::onMessageReceived(const error_code& ec,
             << "Connection::onMessageReceived "
             << ec.message()
             << "\n";
+        
+         closed_ = true;
     }
 }
 
 void Connection::sendMessage(Message& message)
 {
+    if (closed_)
+    {
+        ConnectionException ce("connection " + 
+                               connectionId_ +
+                               " has been closed");
+        throw ce;
+    }
+    
+    //sync the access to the internal queue
+    //because it can be accessed in parallel
+    //by other threads that execute the
+    //onMessageSent callback
     {//enter critical section
         lock_guard<mutex> lock(mutex_);
         //save the message in the internal queue
@@ -103,6 +130,13 @@ void Connection::onMessageSent(const error_code& ec,
                                size_t nrBytes,
                                string messageId)
 {
+    LOG <<INFO << Logger::trace
+        << " Connection::onMessageSent "
+        << messageId
+        << " "
+        << connectionId_
+        << "\n";
+
     if (ec)
     {
         LOG << INFO << Logger::error
@@ -110,12 +144,10 @@ void Connection::onMessageSent(const error_code& ec,
             << ec.message()
             << "\n";
 
-        //put an error message with the same
-        //id in the error queue
-        Message m("ERROR", messageId);
+        //mark the connection as closed
         {//enter critical section
             lock_guard<mutex> lock(mutex_);
-            errorMessages_.push_back(m);
+            closed_ = true;
         }//exit critical secation
     }
 
@@ -162,17 +194,6 @@ vector<Message> Connection::receiveMessages()
         }
     }//exit critical section
     
-    //add error messages
-    {//enter critical section
-        lock_guard<mutex> lock(mutex_);
-
-        while (errorMessages_.size() != 0)
-        {
-            output.push_back(errorMessages_.front());
-            errorMessages_.pop_front();
-        }
-    }//exit critical section
-
     return output;
 }
 
