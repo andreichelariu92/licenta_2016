@@ -12,25 +12,31 @@ Logger& Logger::getInstance(std::string filename)
 }
 Logger& Logger::operator <<(Logger::Prio data)
 {
-        switch(data)
-        {
-        case trace:
-            m_ofs<<"TRC  ";
-            break;
-        case debug:
-            m_ofs<<"DBG  ";
-            break;
-        case error:
-            m_ofs<<"ERR  ";
-            break;
-        case exception:
-            m_ofs<<"EXC  ";
-            break;
-        default:
-            break;
-        }
+    std::string priority;
+    switch(data)
+    {
+    case trace:
+        priority = "TRC  ";
+        break;
+    case debug:
+        priority = "DBG  ";
+        break;
+    case error:
+        priority = "ERR  ";
+        break;
+    case exception:
+        priority = "EXC  ";
+        break;
+    default:
+        break;
+    }
+
+    {//enter critical section
+        std::lock_guard<std::mutex> lock(m_mutex);
         m_ofs.flush();
-        return *this;
+    }//exit critical section
+
+    return *this;
  }
 Logger& Logger::operator <<(Information info)
 {
