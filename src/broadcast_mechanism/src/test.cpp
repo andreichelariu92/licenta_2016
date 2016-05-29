@@ -14,6 +14,7 @@ int main()
     //create broadcast mechanism
     //and add a connection to it
     BroadcastMechanism bm(2);
+    /*
     //ip of the man7.org website
     bm.addConnection("213.131.240.174", 80, "connection1");
     //ip of the catb.org website
@@ -44,6 +45,30 @@ int main()
         }
         ++messageTry;
     }
+    */
 
+    bm.addConnection("127.0.0.1", 12345, "connection1");
+    bm.addConnection("127.0.0.1", 54321, "connection2");
+    
+    int messageTry = 0;
+    while (messageTry < 4)
+    {
+        Message m("message\n", "id");
+        bm.sendToAll(m);
+
+        vector<Message> messages = bm.readFromAll(5000);
+        std::cout << "Message try " << messageTry << "\n";
+        for (Message& m : messages)
+        {
+            std::cout << "MessageId = " << m.messageId << "\n";
+            for (char c : m.buffer)
+            {
+                std::cout << c;
+            }
+            std::cout << "\n";
+        }
+        ++messageTry;
+
+    }
     return 0;
 }
