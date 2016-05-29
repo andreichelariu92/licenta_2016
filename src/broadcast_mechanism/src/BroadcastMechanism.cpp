@@ -74,9 +74,24 @@ void BroadcastMechanism::removeConnection(string connectionId)
 
 void BroadcastMechanism::sendToAll(Message m)
 {
+    removeClosedConnections();
+
     for (Connection& c : connections_)
     {
-        c.sendMessage(m);
+        //in case any connection has been closed
+        //after calling the removeClosedConnections
+        //function
+        try
+        {
+            c.sendMessage(m);
+        }
+        catch(std::exception& e)
+        {
+            LOG << INFO << Logger::error
+                << "BroadcastMechanism::sendToAll "
+                << e.what()
+                << "\n";
+        }
     }
 }
 
@@ -98,6 +113,21 @@ vector<Message> BroadcastMechanism::readFromAll(int timeout)
                       receivedMessages.begin(),
                       receivedMessages.end());
     }
+    
+    //remove the closed connections after
+    //reading from them because they may
+    //have messages
+    removeClosedConnections();
 
     return output;
+}
+
+void BroadcastMechanism::removeClosedConnections()
+{
+    auto closedPredicate = [](const Connection& c)
+    {
+        return c.closed();
+    };
+
+    connections_.remove_if(closedPredicate);
 }

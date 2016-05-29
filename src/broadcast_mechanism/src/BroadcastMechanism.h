@@ -29,6 +29,7 @@ private:
     boost::asio::io_service ioService_;
     int nrThreads_;
     void createAndStartThreads();
+    void removeClosedConnections();
 public:
     //constructor
     BroadcastMechanism(int nrThreads);
@@ -69,18 +70,4 @@ public:
     std::vector<Message> readFromAll(int timeout);
 };
 
-class BMException : public std::exception
-{
-private:
-    std::string message_;
-public:
-    BMException(std::string message)
-        :message_(message)
-    {}
-
-    const char* what() const noexcept override
-    {
-        return message_.c_str();
-    }
-};
 #endif
