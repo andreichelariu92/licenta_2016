@@ -24,6 +24,16 @@ struct LuaCFunction
     {}
 };
 
+struct TestMessage
+{
+    std::string messageId;
+    std::string messageBuffer;
+
+    TestMessage(std::string id, std::string buffer)
+        :messageId(id),
+         messageBuffer(buffer)
+    {}
+};
 /*
  * Class that represents the lua interpreter
  */
@@ -51,11 +61,29 @@ public:
    //destructor
    ~LuaInterpreter();
 
-   //Creates a table with the given name
-   //and adds all the functions from the
-   //vector to it.
+   ///Creates a table with the given name
+   ///and adds all the functions from the
+   ///vector to it.
    void createFunctionTable(std::string tableName,
                             std::vector<LuaCFunction> functions);
+   ///Returns the number from
+   ///the given index, or throws LuaException
+   double getNumber(int index);
+
+   ///Returns a string from
+   ///the given index, or throws LuaException
+   std::string getString(int index);
+
+   ///Pushes the message with
+   ///the given id and buffer
+   ///to the top of the interpreter
+   ///stack in a table.
+   void pushMessage(std::string messageId,
+                    std::string messageBuffer);
+
+   ///Pushed a list of messages on
+   ///top of the stack
+   void pushMessages(std::vector<TestMessage> messages);
 };
 
 class LuaException : public std::exception

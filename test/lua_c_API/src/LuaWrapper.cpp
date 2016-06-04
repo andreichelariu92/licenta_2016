@@ -54,3 +54,69 @@ void LuaInterpreter::createFunctionTable(string tableName,
     //give the table name
     lua_setglobal(luaState_, tableName.c_str());
 }
+
+double LuaInterpreter::getNumber(int index)
+{
+    int isNumber;
+    double result = lua_tonumberx(luaState_, index, &isNumber);
+
+    if (!isNumber)
+    {
+        LuaException e("not a number at index " + index);
+        throw e;
+    }
+
+    return result;
+}
+
+string LuaInterpreter::getString(int index)
+{
+    size_t stringLen = 0;
+    const char* stringPtr = 
+        lua_tolstring(luaState_, index, &stringLen);
+
+    if (stringPtr == NULL) {
+        LuaException e("not a string at index " + index);
+        throw e;
+    }
+
+    return std::string(stringPtr, stringLen);
+}
+
+void LuaInterpreter::pushMessage(string messageId,
+                                 string messageBuffer)
+{
+    //create table that will hold the
+    //message
+    lua_newtable(luaState_);
+
+    //add messageId
+    lua_pushstring(luaState_, "id");
+    lua_pushstring(luaState_, messageId.c_str());
+    lua_settable(luaState_, -3);
+
+    //add messageBuffer
+    lua_pushstring(luaState_, "buffer");
+    lua_pushstring(luaState_, messageBuffer.c_str());
+    lua_settable(luaState_, -3);
+}
+
+void LuaInterpreter::pushMessages(vector<TestMessage> messages)
+{
+    //create the table that will
+    //hold all the messages
+    lua_newtable(luaState_);
+    
+    int messageIdx = 1;//lua start indexes from 1
+    for (TestMessage& message : messages)
+    {
+        //push index
+        lua_pushnumber(luaState_, messageIdx);
+        //push the message
+        pushMessage(message.messageId, message.messageBuffer);
+        //add the message to the list
+        lua_settable(luaState_, -3);
+
+        ++messageIdx;
+    }
+}
