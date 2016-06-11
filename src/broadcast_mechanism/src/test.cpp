@@ -1,14 +1,149 @@
 #include "BroadcastMechanism.h"
+#include "LuaWrapper.h"
 
 #include <iostream>
 #include <thread>
 #include <chrono>
 
+extern "C"
+{
+    #include <lua.h>
+    #include <lauxlib.h>
+    #include <lualib.h>
+}
 using boost::asio::io_service;
 using std::string;
 using std::vector;
 using namespace std::this_thread;
 
+static BroadcastMechanism g_bcast(2);
+
+int testFunc(lua_State* L)
+{
+    LuaInterpreter lua(L);
+    try
+    {
+        string message = lua.getString(1);
+        std::cout << "From native side " << message << "\n";
+        return 0;
+    }
+    catch(std::exception& e)
+    {
+        luaL_error(L, "%s", e.what());
+        return 0;
+    }
+
+}
+
+int bcastInit(lua_State* L)
+{
+    LuaInterpreter lua(L);
+    
+    try
+    {
+        int port = lua.getNumber(1);
+        g_bcast.startAccept(port);
+    }
+    catch(std::exception& e)
+    {
+        luaL_error(L, "%s", e.what());
+    }
+    
+    return 0;
+}
+int addConnection(lua_State* L)
+{
+    LuaInterpreter lua(L);
+
+    try
+    {
+        string ip = lua.getString(1);
+        int port = (int)lua.getNumber(2);
+        string connectionId = lua.getString(3);
+
+        g_bcast.addConnection(ip, port, connectionId);
+    }
+    catch(std::exception& e)
+    {
+        luaL_error(L, "%s", e.what());
+    }
+
+    return 0;
+}
+
+int removeConnection(lua_State* L)
+{
+    LuaInterpreter lua(L);
+
+    try
+    {
+        string connectionId = lua.getString(1);
+        g_bcast.removeConnection(connectionId);
+    }
+    catch(std::exception& e)
+    {
+        luaL_error(L, "%s", e.what());
+    }
+
+    return 0;
+}
+
+int sendToAll(lua_State* L)
+{
+    LuaInterpreter lua(L);
+    
+    try
+    {
+        string messageBuffer = lua.getString(1);
+        string messageId = lua.getString(2);
+        
+        Message m(messageBuffer, messageId);
+        g_bcast.sendToAll(m);
+    }
+    catch(std::exception& e)
+    {
+        luaL_error(L, "%s", e.what());
+    }
+    
+    return 0;
+}
+
+int receiveFromAll(lua_State* L)
+{
+    LuaInterpreter lua(L);
+    
+    try
+    {
+      
+      //get timeout
+      int timeout = lua.getNumber(1);
+      
+      std::vector<Message> messages = g_bcast.receiveFromAll(timeout);
+      lua.pushMessages(messages);
+      
+      return 1;
+    }
+    catch(std::exception& e)
+    {
+        luaL_error(L, "%s", e.what());
+        return 0;
+    }
+}
+extern "C" {
+    int luaopen_broadcast_mechanism(lua_State* L)
+    {
+        LuaInterpreter lua(L);
+        vector<LuaCFunction> functions;
+        functions.emplace_back(testFunc, "show");
+        functions.emplace_back(addConnection, "addConnection");
+        functions.emplace_back(removeConnection, "removeConnection");
+        functions.emplace_back(sendToAll, "sendToAll");
+        functions.emplace_back(receiveFromAll, "receiveFromAll");
+        functions.emplace_back(bcastInit, "init");
+        lua.createFunctionTable("bcast", functions);
+        return 0;
+    }
+}
 int main()
 {
     //create broadcast mechanism
@@ -56,7 +191,7 @@ int main()
         Message m("message\n", "id");
         bm.sendToAll(m);
 
-        vector<Message> messages = bm.readFromAll(5000);
+        vector<Message> messages = bm.receiveFromAll(5000);
         std::cout << "Message try " << messageTry << "\n";
         for (Message& m : messages)
         {
