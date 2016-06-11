@@ -12,7 +12,8 @@ BroadcastMechanism::BroadcastMechanism(int nrThreads)
     :connections_(),
      threads_(),
      ioService_(),
-     nrThreads_(nrThreads)
+     nrThreads_(nrThreads),
+     connectionAcceptor_(ioService_, *this)
 {}
 
 void BroadcastMechanism::createAndStartThreads()
@@ -59,6 +60,10 @@ void BroadcastMechanism::addConnection(string ip,
 
 void BroadcastMechanism::removeConnection(string connectionId)
 {
+    //TODO: Andrei: log instead of cout
+    /*
+    std::cout << "removeConnection called " << connectionId << "\n";
+    */
     list<Connection>::iterator connectionIt;
     for (connectionIt = connections_.begin();
          connectionIt != connections_.end();
@@ -95,7 +100,7 @@ void BroadcastMechanism::sendToAll(Message m)
     }
 }
 
-vector<Message> BroadcastMechanism::readFromAll(int timeout)
+vector<Message> BroadcastMechanism::receiveFromAll(int timeout)
 {
     //block the current thread for
     //the specified ammount of time
@@ -130,4 +135,18 @@ void BroadcastMechanism::removeClosedConnections()
     };
 
     connections_.remove_if(closedPredicate);
+}
+
+void BroadcastMechanism::operator()(tcp::socket s)
+{
+    const string connectionId = "connection" + 
+                                std::to_string(connections_.size());
+    connections_.emplace_back(ioService_,
+                              std::move(s),
+                              connectionId);
+}
+
+void BroadcastMechanism::startAccept(int port)
+{
+    connectionAcceptor_.start(port);
 }

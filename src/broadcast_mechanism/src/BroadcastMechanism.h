@@ -13,6 +13,7 @@
 
 //my headers
 #include "Connection.h"
+#include "ConnectionAcceptor.h"
 
 ///Class that manages a pool of
 ///threads and uses them to send
@@ -28,6 +29,7 @@ private:
     std::vector<std::thread> threads_;
     boost::asio::io_service ioService_;
     int nrThreads_;
+    ConnectionAcceptor<BroadcastMechanism> connectionAcceptor_;
     void createAndStartThreads();
     void removeClosedConnections();
 public:
@@ -67,7 +69,13 @@ public:
     ///reads the messages received by
     ///each connection. In the vector,
     ///there can also be error messages!
-    std::vector<Message> readFromAll(int timeout);
+    std::vector<Message> receiveFromAll(int timeout);
+    ///Operator() overloading
+    ///used to receive incoming connections from the
+    ///ConnectionAcceptor
+    void operator()(tcp::socket s);
+    ///start accepting connections on the given port
+    void startAccept(int port);
 };
 
 #endif
