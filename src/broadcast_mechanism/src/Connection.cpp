@@ -6,6 +6,7 @@ using std::vector;
 using std::deque;
 using std::lock_guard;
 using std::mutex;
+using std::cout;
 
 namespace asio = boost::asio;
 using boost::asio::buffer;
@@ -29,6 +30,23 @@ Connection::Connection(asio::io_service& ioService,
     prepareMessage();
 }
 
+Connection::Connection(asio::io_service& ioService,
+                       tcp::socket socket,
+                       string connectionId)
+    :socket_(std::move(socket)),
+     receivedMessages_(),
+     sentMessages_(),
+     connectionId_(connectionId),
+     messageCount_(0),
+     mutex_(),
+     closed_(true)
+{
+    closed_ = !socket_.is_open();
+    if (!closed_) {
+        prepareMessage();
+    }
+}
+
 void Connection::prepareMessage()
 {
     //create message
@@ -50,11 +68,9 @@ void Connection::onMessageReceived(const error_code& ec,
 {
     LOG << INFO << Logger::trace 
         << " Connection::onMessageReceived "
-        << receivedMessages_.back().messageId
-        << " "
         << connectionId_
         << "\n";
-    
+        
     if (!ec)
     {
         //sync access for the received messages queue,
@@ -75,20 +91,11 @@ void Connection::onMessageReceived(const error_code& ec,
     }
     else
     {
-        //sync access for the same reason
-        //as above
-        lock_guard<std::mutex> lock(mutex_);
-
-        //remove the message because
-        //an error occured
-        receivedMessages_.pop_back();
-       
-        LOG << INFO << Logger::error
-            << "Connection::onMessageReceived "
-            << ec.message()
-            << "\n";
-        
-         closed_ = true;
+        //mark the connection as closed
+        {//enter critical section
+            lock_guard<mutex> lock(mutex_);
+            closed_ = true;
+        }//exit critical secation
     }
 }
 
@@ -204,4 +211,10 @@ string Connection::getMessageId()
    ++messageCount_;
    string output(connectionId_ + string(tempBuffer));
    return output;
+}
+
+Connection::~Connection()
+{
+    socket_.shutdown(boost::asio::ip::tcp::socket::shutdown_both);
+    socket_.close();
 }

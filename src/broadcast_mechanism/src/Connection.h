@@ -78,9 +78,15 @@ private:
     void prepareMessage();
     std::string getMessageId();
 public:
+    ///construct connection by creating a new
+    ///socket
     Connection(boost::asio::io_service& ioService,
                std::string ip, 
                int port,
+               std::string connectionId);
+    ///construct connection from existing socket
+    Connection(boost::asio::io_service& ioService,
+               tcp::socket socket,
                std::string connectionId);
     //remove copy operations
     Connection(const Connection& source) = delete;
@@ -88,8 +94,7 @@ public:
     //remove move operations
     Connection(Connection&& source) = delete;
     Connection& operator=(Connection&& source) = delete;
-    //default destructor
-    ~Connection() = default;
+    ~Connection();
 
     void sendMessage(Message& message);
     std::vector<Message> receiveMessages();
