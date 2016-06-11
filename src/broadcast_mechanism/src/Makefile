@@ -9,7 +9,7 @@ CC = g++
 OPTS = -std=c++11 -c -Wall -g
 
 #Project name
-PROJECT = broadcast_mechanism
+PROJECT = broadcast_mechanism.so
 
 #Directories
 OBJDIR = ../obj
@@ -22,7 +22,7 @@ OBJS = $(patsubst $(SRCDIR)/%.cpp, $(OBJDIR)/%.o, $(SRCS))
 
 #Targets
 $(PROJECT): buildrepo $(OBJS)
-	$(CC) $(OBJS) -lpthread -L../../util -llog ../../util/liblog.a  -lboost_system -o $@ 
+	$(CC) $(OBJS) -shared -llua -lpthread -L../../util -llog ../../util/liblog.a  -lboost_system -o $@ 
 	mv $(PROJECT) ../
 
 $(OBJDIR)/%.o: $(SRCDIR)/%.cpp
