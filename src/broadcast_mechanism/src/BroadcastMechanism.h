@@ -76,6 +76,10 @@ public:
     void operator()(tcp::socket s);
     ///start accepting connections on the given port
     void startAccept(int port);
+    ///Closes all the connections in the bcast mechanism.
+    ///Returns a vector with all the received messages
+    ///from the connections.
+    std::vector<Message> closeConnections();
 };
 
 #endif

@@ -150,3 +150,19 @@ void BroadcastMechanism::startAccept(int port)
 {
     connectionAcceptor_.start(port);
 }
+
+vector<Message> BroadcastMechanism::closeConnections()
+{
+    vector<Message> output;
+
+    for (Connection& c : connections_) {
+        vector<Message> receivedMessages = c.receiveMessages();
+        output.insert(output.end(), 
+                      receivedMessages.begin(), 
+                      receivedMessages.end());
+    }
+
+    connections_.erase(connections_.begin(), connections_.end());
+
+    return output;
+}
