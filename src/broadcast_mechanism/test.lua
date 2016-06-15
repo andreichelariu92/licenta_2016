@@ -14,3 +14,10 @@ for messageIdx, message in pairs(messages) do
     print(message.id)
     print(message.buffer)
 end
+
+messages = bcast.deinit()
+for messageIdx, message in pairs(messages) do
+    print(messageIdx)
+    print(message.id)
+    print(message.buffer)
+end
