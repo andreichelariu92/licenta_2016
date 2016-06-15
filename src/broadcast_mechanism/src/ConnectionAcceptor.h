@@ -6,6 +6,9 @@
 //boost libraries
 #include <boost/asio.hpp>
 
+//my headers
+#include "../../util/src/Logger.h"
+
 //namespace alias for long
 //nested namespaces in boost
 typedef boost::asio::ip::tcp tcp;
@@ -90,7 +93,9 @@ ConnectionAcceptor<ConnectionFunctor>::onConnectionMade(const error_code& ec)
         waitConnection();
     }
     else {
-        //TODO: Andrei: log
+        LOG << INFO << Logger::error
+            << "ConnectionAcceptor::onConnectionMade error"
+            << "\n";
     }
 }
 
