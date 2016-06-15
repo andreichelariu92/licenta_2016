@@ -213,12 +213,6 @@ string Connection::getMessageId()
    return output;
 }
 
-Connection::~Connection()
-{
-    //socket_.shutdown(boost::asio::ip::tcp::socket::shutdown_both);
-    //socket_.close();
-}
-
 std::vector<Message> Connection::close()
 {
     vector<Message> output;
@@ -240,6 +234,7 @@ std::vector<Message> Connection::close()
         }
 
         closed_ = true;
+
     }//leave critical section
 
     //close the socket

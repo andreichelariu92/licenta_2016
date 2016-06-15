@@ -91,7 +91,7 @@ public:
     //remove move operations
     Connection(Connection&& source) = delete;
     Connection& operator=(Connection&& source) = delete;
-    ~Connection();
+    ~Connection() = default;
 
     void sendMessage(Message& message);
     std::vector<Message> receiveMessages();
