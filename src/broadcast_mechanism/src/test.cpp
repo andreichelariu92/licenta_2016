@@ -6,6 +6,7 @@
 #include <chrono>
 #include <unistd.h>
 #include <sys/types.h>
+#include <cstring>
 
 extern "C"
 {
@@ -19,7 +20,6 @@ using std::vector;
 using namespace std::this_thread;
 
 static BroadcastMechanism g_bcast(2);
-static pid_t currentPid = 0;
 
 int testFunc(lua_State* L)
 {
@@ -44,8 +44,6 @@ int bcastInit(lua_State* L)
     
     try
     {
-        std::cout << currentPid << "\n";
-        currentPid = getpid();
         int port = lua.getNumber(1);
         g_bcast.startAccept(port);
     }
@@ -67,9 +65,16 @@ int addConnection(lua_State* L)
         string connectionId = lua.getString(3);
 
         g_bcast.addConnection(ip, port, connectionId);
+
+        lua_pushboolean(L, 1);
+        return 1;
     }
     catch(std::exception& e)
     {
+        if (strstr(e.what(), "Connection refused")) {
+           lua_pushboolean(L, 0);
+           return 1;
+        }
         luaL_error(L, "%s", e.what());
     }
 
