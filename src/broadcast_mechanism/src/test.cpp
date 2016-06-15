@@ -4,6 +4,8 @@
 #include <iostream>
 #include <thread>
 #include <chrono>
+#include <unistd.h>
+#include <sys/types.h>
 
 extern "C"
 {
@@ -17,6 +19,7 @@ using std::vector;
 using namespace std::this_thread;
 
 static BroadcastMechanism g_bcast(2);
+static pid_t currentPid = 0;
 
 int testFunc(lua_State* L)
 {
@@ -41,6 +44,8 @@ int bcastInit(lua_State* L)
     
     try
     {
+        std::cout << currentPid << "\n";
+        currentPid = getpid();
         int port = lua.getNumber(1);
         g_bcast.startAccept(port);
     }
@@ -129,6 +134,25 @@ int receiveFromAll(lua_State* L)
         return 0;
     }
 }
+
+int bcastDeinit(lua_State* L)
+{
+    LuaInterpreter lua(L);
+
+    try
+    {
+        vector<Message> finishedMsg = g_bcast.closeConnections();
+        lua.pushMessages(finishedMsg);
+
+        return 1;
+    }
+    catch(std::exception& e)
+    {
+        luaL_error(L, "%s", e.what());
+        return 0;
+    }
+}
+
 extern "C" {
     int luaopen_broadcast_mechanism(lua_State* L)
     {
@@ -140,6 +164,7 @@ extern "C" {
         functions.emplace_back(sendToAll, "sendToAll");
         functions.emplace_back(receiveFromAll, "receiveFromAll");
         functions.emplace_back(bcastInit, "init");
+        functions.emplace_back(bcastDeinit, "deinit");
         lua.createFunctionTable("bcast", functions);
         return 0;
     }
