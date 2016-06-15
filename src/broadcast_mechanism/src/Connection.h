@@ -54,9 +54,6 @@ typedef boost::system::error_code error_code;
 ///pooled by the client code.
 
 
-//TODO: Andrei: when a connection cannot
-//send or receive messages, it should be
-//marked as closed
 class Connection
 {
 private:
@@ -108,6 +105,10 @@ public:
     {
         return closed_;
     }
+    ///Closes the connection. All the complete messages that are
+    ///in the receive queue will be returned. All the
+    ///messages that are in the send queue will be lost.
+    std::vector<Message> close();
 };
 
 ///Class that represents a problem with

@@ -215,6 +215,36 @@ string Connection::getMessageId()
 
 Connection::~Connection()
 {
+    //socket_.shutdown(boost::asio::ip::tcp::socket::shutdown_both);
+    //socket_.close();
+}
+
+std::vector<Message> Connection::close()
+{
+    vector<Message> output;
+    
+    if (closed_) {
+        return output;
+    }
+
+    {//enter critical section
+        lock_guard<mutex> lock(mutex_);
+        while (receivedMessages_.size() != 0) {
+            if (receivedMessages_.front().complete) {
+                output.push_back(receivedMessages_.front());
+                receivedMessages_.pop_front();
+            }
+            else {
+                break;
+            }
+        }
+
+        closed_ = true;
+    }//leave critical section
+
+    //close the socket
     socket_.shutdown(boost::asio::ip::tcp::socket::shutdown_both);
     socket_.close();
+    
+    return output;
 }
