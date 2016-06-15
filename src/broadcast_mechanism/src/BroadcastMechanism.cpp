@@ -35,8 +35,7 @@ void BroadcastMechanism::createAndStartThreads()
 
 BroadcastMechanism::~BroadcastMechanism()
 {
-    //TODO: Andrei: Think of a solution
-    //to force the exit of threads
+    ioService_.stop();
     for (thread& t : threads_)
     {
         t.join();
@@ -60,10 +59,6 @@ void BroadcastMechanism::addConnection(string ip,
 
 void BroadcastMechanism::removeConnection(string connectionId)
 {
-    //TODO: Andrei: log instead of cout
-    /*
-    std::cout << "removeConnection called " << connectionId << "\n";
-    */
     list<Connection>::iterator connectionIt;
     for (connectionIt = connections_.begin();
          connectionIt != connections_.end();
@@ -156,13 +151,11 @@ vector<Message> BroadcastMechanism::closeConnections()
     vector<Message> output;
 
     for (Connection& c : connections_) {
-        vector<Message> receivedMessages = c.receiveMessages();
+        vector<Message> receivedMessages = c.close();
         output.insert(output.end(), 
                       receivedMessages.begin(), 
                       receivedMessages.end());
     }
-
-    connections_.erase(connections_.begin(), connections_.end());
 
     return output;
 }
