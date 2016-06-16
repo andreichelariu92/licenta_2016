@@ -18,8 +18,6 @@ using boost::asio::write;
 void FileEventSession::onMessageReceived(const error_code& ec,
                                          size_t nrBytes)
 {
-    //TODO: Andrei: Remove
-    cout << "Debug onMessageReceived " << sessionId_ << "\n";
     LOG << INFO << Logger::trace
         << "FileEventSession::onMessageReceived"
         << " sessionId = " << sessionId_
@@ -30,21 +28,11 @@ void FileEventSession::onMessageReceived(const error_code& ec,
     {
         this->onMessageReceived(ec, nrBytes);
     };
-    //TODO: Andrei: Remove comment
     processMessage(ec, nrBytes);
 
     //prepare the reading of the next message
     try
     {
-        //try to read from the unix socket
-        //if there is no exception, start
-        //an asynchronous read
-        //TODO: Andrei review
-        //socket_.read_some(buffer(data_));
-        
-        //TODO: Andrei: remove comment
-        //processMessage(ec, data_.size());
-        
         //clear all the current data, so
         //that the callback can work only
         //on the data from the next read
