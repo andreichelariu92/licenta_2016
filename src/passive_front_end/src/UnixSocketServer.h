@@ -87,8 +87,6 @@ void UnixSocketServer<Session, SessionFactory>
     ::onAccept(Session& currentSession,
                const boost::system::error_code& ec)
 {
-    //TODO: Andrei: remove
-    std::cout << "UnixSocketServer::onAccept\n";
     using asio::buffer;
     if (!ec)
     {
