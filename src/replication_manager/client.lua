@@ -1,5 +1,6 @@
 #!/usr/bin/lua
 package.path = package.path .. ";/usr/local/share/lua/5.2/?.lua"
+package.cpath = package.cpath .. ";/usr/local/share/lua/5.2/?.so"
 socket = require("socket")
 json = require("json")
 
@@ -61,7 +62,7 @@ function consumer()
         if state then
             print("count = ", count)
             for k, v in pairs(fileEvents) do
-                print(v.absolutePath, v.fileEvent, v.fileType)
+                print(v.absolutePath, v.eventType, v.fileType)
                 print("\n")
             end
         end
