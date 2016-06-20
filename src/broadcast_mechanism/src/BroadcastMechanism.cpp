@@ -50,7 +50,9 @@ void BroadcastMechanism::addConnection(string ip,
                               ip,
                               port,
                               connectionId);
-
+    
+    std::cout << "BroadcastMechanism::addConnection "
+              << connections_.size() << " active connections\n";
     if (connections_.size() == 1)
     {
         createAndStartThreads();
@@ -144,6 +146,7 @@ void BroadcastMechanism::operator()(tcp::socket s)
 void BroadcastMechanism::startAccept(int port)
 {
     connectionAcceptor_.start(port);
+    createAndStartThreads();
 }
 
 vector<Message> BroadcastMechanism::closeConnections()
