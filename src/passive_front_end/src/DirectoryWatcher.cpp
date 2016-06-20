@@ -67,10 +67,6 @@ EventType DirectoryWatcher::getEventType(const InotifyEvent& iEvent)
     {
         eventType = EventType::create;
     }
-    else if (iEvent.mask & IN_MODIFY)
-    {
-        eventType = EventType::modified;
-    }
     else if (iEvent.mask & IN_DELETE)
     {
         eventType = EventType::deleted;
@@ -83,6 +79,17 @@ EventType DirectoryWatcher::getEventType(const InotifyEvent& iEvent)
     {
         eventType = EventType::movedTo;
     }
+    else if (iEvent.mask & IN_OPEN)
+    {
+        eventType = EventType::open;
+    }
+    //only take into account when the file
+    //was open with writing permissions
+    else if (iEvent.mask & IN_CLOSE_WRITE)
+    {
+        eventType = EventType::close;
+    }
+
 
     return eventType;
 }
@@ -181,6 +188,20 @@ vector<FileEvent> DirectoryWatcher::readEvents(int timeout)
             watchedDirectories_.erase(iEvent.wd);
         }
         
+        //only take into account the open and close
+        //operations on files
+        if (eventType == EventType::open && 
+            fileType == FileType::directory)
+        {
+            eventType = EventType::invalid;
+        }
+        if (eventType == EventType::close &&
+            fileType == FileType::directory)
+        {
+            eventType = EventType::invalid;
+        }
+
+
         if (eventType != EventType::invalid)
         {
             FileEvent fEvent(absolutePath, fileType, eventType);

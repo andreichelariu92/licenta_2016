@@ -20,10 +20,11 @@ enum class EventType
 {
     invalid = -1,
     create = 0,
-    modified = 1,
-    deleted = 2,
-    movedFrom = 3,
-    movedTo = 4
+    deleted = 1,
+    movedFrom = 2,
+    movedTo = 3,
+    open = 4,
+    close = 5
 };
 
 struct FileEvent
