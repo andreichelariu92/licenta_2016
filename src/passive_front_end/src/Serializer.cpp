@@ -1,4 +1,5 @@
 #include "Serializer.h"
+#include <iostream>
 
 using std::string;
 using std::stringstream;
@@ -43,9 +44,6 @@ string Serializer::serialize(vector<FileEvent>& fileEvents)
             case EventType::create:
                 ss_ << "create\"";
                 break;
-            case EventType::modified:
-                ss_ << "modified\"";
-                break;
             case EventType::deleted:
                 ss_ << "deleted\"";
                 break;
@@ -54,6 +52,12 @@ string Serializer::serialize(vector<FileEvent>& fileEvents)
                 break;
             case EventType::movedTo:
                 ss_ << "movedTo\"";
+                break;
+            case EventType::open:
+                ss_ << "open\"";
+                break;
+            case EventType::close:
+                ss_ << "close\"";
                 break;
             case EventType::invalid:
                 return string("");
