@@ -1,15 +1,14 @@
-require "broadcast_mechanism"
+require "broadcast_mechanism_client"
 badParam = {}
-bcast.init(54321)
+bcast_client.init(54321)
 --wait
 local expectedClocks = 10
 local start = os.clock()
 while os.clock() - start < expectedClocks do
 end
-ok = bcast.addConnection("127.0.0.1", 12345, "connection1")
-print(ok)
+bcast_client.addConnection("127.0.0.1", 12345, "connection1")
 
-messages = bcast.receiveFromAll(5000)
+messages = bcast_client.receive(5000)
 for messageIdx, message in pairs(messages) do
     print(messageIdx)
     print(message.id)
