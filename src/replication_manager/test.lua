@@ -1,6 +1,6 @@
-require("broadcast_mechanism_client")
-require("passive_front_end_client")
-require("event_processor")
+require("clients.broadcast_mechanism_client")
+require("clients.passive_front_end_client")
+require("events.event_processor")
 
 function sleep(seconds)
     local start = os.clock()
