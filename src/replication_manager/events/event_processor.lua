@@ -1,5 +1,6 @@
 local json = require("json")
 local fileops = require("file_operations")
+local conmgr = require("events.consistency_manager")
 
 --global table that will hold all the functions visible 
 --to the application
@@ -7,10 +8,82 @@ event_processor = {}
 
 --Module variable that holds the root directory
 local rootDir = ""
+--Module variable that holds a list with all the
+--ignored file name prefixes. Any file or directory
+--that starts with this name, will have its events
+--ignored(i.e. not forwarded on the network).
+local ignorePrefixes = {}
+--Module variable that holds the prefix of the tentative
+--files. Tentative files are files modified on the network
+--but that are in the same time modified by the user.
+local tentativePrefix = ""
+--Module variable that holds the prefix for the conflict
+--files. Conflict files are files that contain the modifications
+--done by the user, while the file was modified on the network.
+local conflictPrefix = ""
+--Module variable that holds all the ignored events.
+local ignoredEvents = {}
+--Module variable that holds the function used to solve the
+--conflict for a file. It can be set when the module is
+--initialized.  localPath is the path to the data modified
+--by the user. tentativePath is the path to the file modified on
+--the network.
+local conflictFunction = function (localPath, tentativePath)
+    --The default function moves the file modifed by the
+    --user in a file with the conflictPrefix at the begining.
+    --It then moves the tentative file(with the data from
+    --the network) in place of the user file.
+    local conflictPath = fileops.addPrefix(localPath, conflictPrefix)
+    
+    local moveEvent = {}
+    moveEvent.absolutePath = localPath
+    moveEvent.fileType = "file"
+    moveEvent.eventType = "movedFrom"
+    event_processor.ignoreEvent(moveEvent)
 
+    fileops.move(localPath, conflictPath)
+    fileops.move(tentativePath, localPath)
+end
 --Function that initializes the internal state of the module
-function event_processor.init(argRootDir)
+function event_processor.init(argRootDir, 
+                              argLockPrefix, 
+                              argTentativePrefix,
+                              argConflictPrefix,
+                              argConflictFunction)
     rootDir = argRootDir
+    
+    ignorePrefixes[#ignorePrefixes + 1] = "."
+    
+    if not argLockPrefix then
+        argLockPrefix = "_lock_"
+    end
+    fileops.init(argLockPrefix)
+    ignorePrefixes[#ignorePrefixes + 1] = argLockPrefix
+
+    if argTentativePrefix then
+        tentativePrefix = argTentativePrefix
+    else
+        tentativePrefix = "_tentative_"
+    end
+    --events on the tentative files will not be forwarded on
+    --the network
+    ignorePrefixes[#ignorePrefixes + 1] = tentativePrefix
+
+    if argConflictPrefix then
+        conflictPrefix = argConflictPrefix
+    else
+        conflictPrefix = "_conflict_"
+    end
+    --events on the conflict files will not be forwarded
+    --on the network
+    ignorePrefixes[#ignorePrefixes + 1] = conflictPrefix
+
+    if argConflictFunction and 
+       type(argConflictFunction) == "function" then
+       
+       conflictFunction = argConflictFunction
+   end
+
 end
 
 --Local function that constructs a network event from the
@@ -24,7 +97,7 @@ local function makeNetworkEvent(localEvent)
     
     --add the content of the file to the event only if the
     --file has been modified or created
-    if (output.fileType == "file") and (output.eventType == "close") then
+    if (output.fileType == "file") and (output.eventType == "closeWrite") then
        local file = assert(io.open(localEvent.absolutePath, "rb"))
        output.buffer = file:read("*all")
        file:close()
@@ -35,23 +108,71 @@ local function makeNetworkEvent(localEvent)
    return output
 end
 
+--Local function that checks if the given file must be ignored.
+--If it has its name starting with one of the ignorePrefixes.
+local function isFileIgnored(absolutePath)
+    for _, prefix in pairs(ignorePrefixes) do
+        if fileops.hasPrefix(absolutePath, prefix) then
+            return true
+        end
+    end
+
+    return false
+end
+
+--Local function that checks if the given local event is in the
+--list of ignored events. If it is, it removes the event from
+--the list and returns true.
+local function isEventIgnored(event)
+    for idx, ignoredEvent in pairs(ignoredEvents) do
+        if event.absolutePath == ignoredEvent.absolutePath and
+           event.fileType == ignoredEvent.fileType and
+           event.eventType == ignoredEvent.eventType then
+           
+            table.remove(ignoredEvents, idx)
+            return true
+        end
+    end
+
+    return false
+end
 --Local function that will execute the local event.
 --It makes backups(if I have time to implement) and
 --returns true if the event should be sent on the network.
 local function execLocalEvent(event)
-    --TODO: Andrei: implement
-    --print("event_processor::execLocalEvent")
-    local fileName = fileops.getFileName(event.absolutePath)
-
-    --if the file is a special one(i.e. starting with ".")
-    --it will not be taken into account
-    if fileName and string.sub(fileName, 1, 1) == "." then
+    print("event_processor::execLocalEvent")
+    
+    if isFileIgnored(event.absolutePath) then
+        return false
+    end
+    
+    if isEventIgnored(event) then
         return false
     end
 
-    --if it is a open event, don't forward it to the other
-    --users
+    --don't forward open events
     if event.eventType == "open" then
+        --TODO: Andrei: remove
+        print(event.absolutePath, "open")
+        conmgr.handleLocalOpenEvent(event)
+        return false
+    end
+    
+    if event.eventType == "closeWrite" or 
+       eventType == "closeNoWrite" then
+        local conflict = conmgr.handleLocalCloseEvent(event)
+        if conflict then
+            print("local event conflict on file ", event.absolutePath)
+            local tentativePath = 
+                fileops.addPrefix(event.absolutePath, tentativePrefix)
+            conflictFunction(event.absolutePath, tentativePath)
+        end
+    end
+
+    --don't forward closeNoWrite events
+    if event.eventType == "closeNoWrite" then
+        --TODO: Andrei: remove
+        print(event.absolutePath, "closeNoWrite")
         return false
     end
 
@@ -67,12 +188,19 @@ local function sendNetworkEvent(networkEvent)
    bcast_client.send(message)
 end
 
+
+--Function that adds an event to the list of ignored
+--events.
+function event_processor.ignoreEvent(event)
+    table.insert(ignoredEvents, event)
+end
+
 --Function that processes the events received from the 
 --passive front end
 --The structure of the events received from pfe is:
 --absolutePath = path to the file or directory
---eventType = type of event (create, deleted, open, close
---            movedTo, movedFrom)
+--eventType = type of event (create, deleted, open, closeWrite,
+--            closeNoWrite, movedTo, movedFrom)
 --fileType =  type of file(file, directory)
 function event_processor.processLocalEvent(event)
    local send = execLocalEvent(event)
@@ -91,8 +219,9 @@ local movedFromDir = ""
 --The structure of a network event is:
 --relativePath = path of the file relative to the root dir
 --eventType = type of event(create, deleted, movedTo, movedFrom,
---            close)
+--            closeWrite)
 --fileType = type of file(file, directory)
+--buffer = the content of the file
 function event_processor.processNetworkEvent(event)
     local absPath = fileops.absolutePath(event.relativePath, rootDir)
     if event.eventType == "create" then
@@ -103,23 +232,38 @@ function event_processor.processNetworkEvent(event)
         end
     elseif event.eventType == "deleted" then
         if event.fileType == "file" then
+            fileops.lockFile(absPath)
             fileops.removeFile(absPath)
+            fileops.unlockFile(absPath)
         elseif event.fileType == "directory" then
+            fileops.lockDir(absPath)
             fileops.removeDir(absPath)
+            fileops.unlockDir(absPath)
         end
     elseif event.eventType == "movedFrom" then
         if event.fileType == "file" then
+            fileops.lockFile(absPath)
             movedFromFile = absPath
         elseif event.fileType == "directory" then
+            fileops.lockDir(absPath)
             movedFromDir = absPath
         end
     elseif event.eventType == "movedTo" then
         if event.fileType == "file" then
             fileops.move(movedFromFile, absPath)
+            fileops.unlockFile(movedFromFile)
         elseif event.fileType == "directory" then
             fileops.move(movedFromDir, absPath)
+            fileops.unlockDir(movedFromDir)
         end
-    elseif event.eventType == "close" then
+    elseif event.eventType == "closeWrite" then
+        local conflict = conmgr.handleNetworkCloseEvent(absPath)
+        if conflict then
+            print("network event conflict on file ", absPath)
+            absPath = fileops.addPrefix(absPath, tentativePrefix)
+        end
+        fileops.lockFile(absPath)
         fileops.writeFile(absPath, event.buffer)
+        fileops.unlockFile(absPath)
     end
 end
