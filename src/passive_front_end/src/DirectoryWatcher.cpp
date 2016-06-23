@@ -83,11 +83,13 @@ EventType DirectoryWatcher::getEventType(const InotifyEvent& iEvent)
     {
         eventType = EventType::open;
     }
-    //only take into account when the file
-    //was open with writing permissions
     else if (iEvent.mask & IN_CLOSE_WRITE)
     {
-        eventType = EventType::close;
+        eventType = EventType::closeWrite;
+    }
+    else if (iEvent.mask & IN_CLOSE_NOWRITE)
+    {
+        eventType = EventType::closeNoWrite;
     }
 
 
@@ -195,7 +197,12 @@ vector<FileEvent> DirectoryWatcher::readEvents(int timeout)
         {
             eventType = EventType::invalid;
         }
-        if (eventType == EventType::close &&
+        if (eventType == EventType::closeWrite &&
+            fileType == FileType::directory)
+        {
+            eventType = EventType::invalid;
+        }
+        if (eventType == EventType::closeNoWrite &&
             fileType == FileType::directory)
         {
             eventType = EventType::invalid;

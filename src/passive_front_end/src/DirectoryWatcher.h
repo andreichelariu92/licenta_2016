@@ -24,7 +24,8 @@ enum class EventType
     movedFrom = 2,
     movedTo = 3,
     open = 4,
-    close = 5
+    closeWrite = 5,
+    closeNoWrite = 6
 };
 
 struct FileEvent
