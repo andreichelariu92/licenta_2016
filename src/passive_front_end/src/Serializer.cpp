@@ -56,8 +56,11 @@ string Serializer::serialize(vector<FileEvent>& fileEvents)
             case EventType::open:
                 ss_ << "open\"";
                 break;
-            case EventType::close:
-                ss_ << "close\"";
+            case EventType::closeWrite:
+                ss_ << "closeWrite\"";
+                break;
+            case EventType::closeNoWrite:
+                ss_ << "closeNoWrite\"";
                 break;
             case EventType::invalid:
                 return string("");
