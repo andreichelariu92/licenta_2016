@@ -42,7 +42,7 @@ function pfe_client.getFileEvents(port, timeout)
         port = 2001
     end
     if not timeout then
-        timeout = 10
+        timeout = 5
     end
     --create a unix socket and set
     --it a timeout value
@@ -70,7 +70,7 @@ end
 local function consumer()
     co_eventGenerator = coroutine.create(getFileEvents)
     local count = 0
-    while count < 5 do
+    while count < 10 do
         local state, fileEvents = coroutine.resume(co_eventGenerator)
         if state then
             print("count = ", count)
