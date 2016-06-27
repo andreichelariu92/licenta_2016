@@ -54,6 +54,11 @@ function file_operations.removeDir(path)
 end
 
 function file_operations.move(source, destination)
+    if source == "" or destination == "" then
+        --do nothing
+        return
+    end
+
     local command = "mv " .. source .. " " .. destination
     print(command)
     if os.execute(command) then
@@ -186,7 +191,7 @@ end
 function file_operations.lockDir(path)
     local lockPath = getLockPath(path)
     if lockPath then
-        return file_operations.createDir(lockPath)
+        return file_operations.createFile(lockPath)
     else
         return false
     end
@@ -197,10 +202,15 @@ end
 function file_operations.unlockDir(path)
     local lockPath = getLockPath(path)
     if lockPath then
-        return file_operations.removeDir(lockPath)
+        return file_operations.removeFile(lockPath)
     else
         return false
     end
 end
 
+--Function that returns true if the specified path is
+--for a lock file
+function file_operations.isLockFile(path)
+    return file_operations.hasPrefix(path, lockPrefix)
+end
 return file_operations
