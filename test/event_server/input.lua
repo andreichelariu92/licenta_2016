@@ -1,7 +1,15 @@
 SendEvent
 {
-    relativePath = "/test_server/f1",
-    eventType = "closeWrite",
+    relativePath = "/file1",
+    eventType = "movedFrom",
     fileType = "file",
-    buffer = "Te-am spart, sa moara mama."
+    buffer = ""
+}
+
+SendEvent
+{
+    relativePath = "/file2",
+    eventType = "movedTo",
+    fileType = "file",
+    buffer = ""
 }
