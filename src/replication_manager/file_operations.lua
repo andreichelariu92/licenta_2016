@@ -53,6 +53,16 @@ function file_operations.removeDir(path)
     end
 end
 
+function file_operations.copyFile(source, destination)
+    local command = "cp " .. source .. " " .. destination
+    print(command)
+    if os.execute(command) then
+        return true
+    else
+        return false
+    end
+end
+
 function file_operations.move(source, destination)
     if source == "" or destination == "" then
         --do nothing
