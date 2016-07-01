@@ -12,6 +12,10 @@ local openFiles = {}
 --user and that receive a close event from the network.
 local conflictFiles = {}
 
+--Module variable that holds all the conflict events for
+--a given path
+local conflictEvents = {}
+
 --Function that will initialize all the module variables
 --needed by the consistency manager
 function con_mgr.init()
@@ -28,7 +32,7 @@ end
 --from the network. Returns true if the file is
 --in conflict, i.e. the user has opened the file,
 --but not yet closed it.
-function con_mgr.handleNetworkCloseEvent(absPath)
+function con_mgr.handleNetworkEvent(absPath)
     if openFiles[absPath] then
         conflictFiles[absPath] = true
     end
@@ -48,6 +52,27 @@ function con_mgr.handleLocalCloseEvent(event)
     else
         return false
     end
+end
+
+--Function that adds a conflict event to the given path
+function con_mgr.addConflictEvent(path, event)
+    if not conflictEvents[path] then
+        --create a new list of events
+        conflictEvents[path] = {}
+    end
+    
+    local nrEvents = #(conflictEvents[path])
+    conflictEvents[path][nrEvents + 1] = event
+end
+
+--Function that returns all the conflict events for a given
+--path.
+function con_mgr.getConflictEvents(path)
+    local output = conflictEvents[path]
+    --remove the pointer from the module variable
+    conflictEvents[path] = nil
+
+    return output
 end
 
 return con_mgr
