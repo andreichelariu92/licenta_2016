@@ -13,48 +13,47 @@ local rootDir = ""
 --files. Tentative files are files modified on the network
 --but that are in the same time modified by the user.
 local tentativePrefix = ""
---Module variable that holds the prefix for the conflict
+--Public variable that holds the prefix for the conflict
 --files. Conflict files are files that contain the modifications
 --done by the user, while the file was modified on the network.
-local conflictPrefix = ""
---Module variable that holds the prefix for the lock files.
-local lockPrefix = ""
+event_processor.conflictPrefix = ""
+--Public variable that holds the prefix for the lock files.
+event_processor.lockPrefix = ""
 --Module variable that holds the function used to solve the
 --conflict for a file. It can be set when the module is
 --initialized.  localPath is the path to the data modified
---by the user. tentativePath is the path to the file modified on
---the network.
-local conflictFunction = function (localPath, tentativePath)
-    --The default function moves the file modifed by the
-    --user in a file with the conflictPrefix at the begining.
-    --It then moves the tentative file(with the data from
-    --the network) in place of the user file.
-    local conflictPath = fileops.addPrefix(localPath, conflictPrefix)
+--by the user. conflictEvents holds a list with the network
+--event that happend while the file was open.
+local _conflictFunction = function (localPath, conflictEvents)
+    --The default function makes a copy of the user modifications
+    --in a conflict file and then executes the conflict events on
+    --the original file.
+    local conflictPath = fileops.addPrefix(localPath, 
+                           event_processor.conflictPrefix)
+    fileops.copyFile(localPath, conflictPath)
     
-    local moveEvent = {}
-    moveEvent.absolutePath = localPath
-    moveEvent.fileType = "file"
-    moveEvent.eventType = "movedFrom"
-    event_filter.ignoreEvent(moveEvent)
-
-    fileops.move(localPath, conflictPath)
-    fileops.move(tentativePath, localPath)
+    --execute the events on the original file
+    for _, event in pairs(conflictEvents) do
+        print("Conflict network event ",
+              event.relativePath, event.eventType)
+        event_processor.processNetworkEvent(event)
+    end
 end
 --Function that initializes the internal state of the module
-function event_processor.init(argRootDir, 
+function event_processor.init(argRootDir,
                               argLockPrefix, 
                               argTentativePrefix,
-                              argConflictPrefix,
-                              argConflictFunction)
+                              argConflictPrefix)
     rootDir = argRootDir
     
+    event_filter.init()
     event_filter.addIgnorePrefix(".")
     
     if not argLockPrefix then
         argLockPrefix = "_lock_"
     end
-    lockPrefix = argLockPrefix
-    fileops.init(lockPrefix)
+    event_processor.lockPrefix = argLockPrefix
+    fileops.init(event_processor.lockPrefix)
     event_filter.addIgnorePrefix(argLockPrefix)
 
     if argTentativePrefix then
@@ -67,20 +66,23 @@ function event_processor.init(argRootDir,
     event_filter.addIgnorePrefix(tentativePrefix)
 
     if argConflictPrefix then
-        conflictPrefix = argConflictPrefix
+        event_processor.conflictPrefix = argConflictPrefix
     else
-        conflictPrefix = "_conflict_"
+        event_processor.conflictPrefix = "_conflict_"
     end
     --events on the conflict files will not be forwarded
     --on the network
-    event_filter.addIgnorePrefix(conflictPrefix)
+    event_filter.addIgnorePrefix(event_processor.conflictPrefix)
 
-    if argConflictFunction and 
-       type(argConflictFunction) == "function" then
-       
-       conflictFunction = argConflictFunction
+
+end
+
+--Public function that sets the conflict function
+function event_processor.setConflictFunction(f)
+    if f and type(f) == "function" then
+        print("Custom function for conflicts will be used")
+       _conflictFunction = f
    end
-
 end
 
 --Local function that constructs a network event from the
@@ -115,7 +117,8 @@ local function ignoreLockedFile(path)
         return
     end
 
-    local filePath = fileops.removePrefix(path, lockPrefix)
+    local filePath = fileops.removePrefix(path, 
+                       event_processor.lockPrefix)
     if filePath then
         event_filter.addIgnorePath(filePath)
     end
@@ -130,7 +133,8 @@ local function deignoreLockedFile(path)
         return
     end
 
-    local filePath = fileops.removePrefix(path, lockPrefix)
+    local filePath = fileops.removePrefix(path,
+                       event_processor.lockPrefix)
     if filePath then
         event_filter.removeIgnorePath(filePath)
     end
@@ -141,11 +145,14 @@ end
 --returns true if the event should be sent on the network.
 local function execLocalEvent(event)
     print("event_processor::execLocalEvent")
-   
     if fileops.isLockFile(event.absolutePath) then
         if event.eventType == "create" then
+            --all the events on the locked file
+            --will be ignored
             ignoreLockedFile(event.absolutePath)
         elseif event.eventType == "deleted" then
+            --all the events on the locked file
+            --will now be processed
             deignoreLockedFile(event.absolutePath)
         end
     end
@@ -160,7 +167,6 @@ local function execLocalEvent(event)
 
     --don't forward open events
     if event.eventType == "open" then
-        --TODO: Andrei: remove
         print(event.absolutePath, "open")
         conmgr.handleLocalOpenEvent(event)
         return false
@@ -171,15 +177,15 @@ local function execLocalEvent(event)
         local conflict = conmgr.handleLocalCloseEvent(event)
         if conflict then
             print("local event conflict on file ", event.absolutePath)
-            local tentativePath = 
-                fileops.addPrefix(event.absolutePath, tentativePrefix)
-            conflictFunction(event.absolutePath, tentativePath)
+            local conflictEvents = 
+                conmgr.getConflictEvents(event.absolutePath)
+            _conflictFunction(event.absolutePath, conflictEvents)
+            return false
         end
     end
 
     --don't forward closeNoWrite events
     if event.eventType == "closeNoWrite" then
-        --TODO: Andrei: remove
         print(event.absolutePath, "closeNoWrite")
         return false
     end
@@ -225,6 +231,14 @@ local movedFromDir = ""
 --buffer = the content of the file
 function event_processor.processNetworkEvent(event)
     local absPath = fileops.absolutePath(event.relativePath, rootDir)
+    
+    local conflict = conmgr.handleNetworkEvent(absPath)
+    if conflict then
+        conmgr.addConflictEvent(absPath, event)
+        --don't handle the event
+        return
+    end
+
     if event.eventType == "create" then
         if event.fileType == "file" then
             fileops.lockFile(absPath)
@@ -264,11 +278,6 @@ function event_processor.processNetworkEvent(event)
             movedFromDir = ""
         end
     elseif event.eventType == "closeWrite" then
-        local conflict = conmgr.handleNetworkCloseEvent(absPath)
-        if conflict then
-            print("network event conflict on file ", absPath)
-            absPath = fileops.addPrefix(absPath, tentativePrefix)
-        end
         fileops.lockFile(absPath)
         fileops.writeFile(absPath, event.buffer)
         fileops.unlockFile(absPath)
