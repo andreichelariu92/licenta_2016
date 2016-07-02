@@ -206,7 +206,7 @@ vector<Message> Connection::receiveMessages()
 
 string Connection::getMessageId()
 {
-   char tempBuffer[10];
+   char tempBuffer[20];
    sprintf(tempBuffer, ":received:%d", messageCount_);
    ++messageCount_;
    string output(connectionId_ + string(tempBuffer));
