@@ -102,6 +102,15 @@ function configureApp()
         config.connections = connections
     end
     
+    --configure the number of events
+    if not nrEvents then
+        print("50 events will be processed by default. -1 specifies ",
+              "to process events for ever")
+        config.nrEvents = 50
+    else
+        config.nrEvents = nrEvents
+    end
+
     return config
 end
 
@@ -120,7 +129,7 @@ end
 
 co_fileEvents = coroutine.create(pfe_client.getFileEvents)
 local count = 0
-while count < 15 do
+while count < config.nrEvents do
     local state, fileEvents = 
         coroutine.resume(co_fileEvents, 
                          config.pfePort, 

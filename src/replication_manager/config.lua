@@ -1,8 +1,8 @@
 --This is an example configuration file for the replication manager
---Fell free to change the parameters, but read carefully :P
+--Feel free to change the parameters, but read carefully :P
 
 --The port on which other applications will connect
-bcastPort = 12345
+bcastPort = 54321
 
 --The absolute path to the directory that will be listened
 rootDir = "/home/andrei/test"
@@ -38,8 +38,12 @@ conflictFunction = function (localPath, conflictEvents)
   end
 end
 
+--Variable that specifies the number of events to be
+--processed. In realese is should be -1 (for ever).
+nrEvents = 100
+
 --List of connections with the other applications
 --in the sysem
 --connections = {
---  {ip = "127.0.0.1", port = 54321, connectionId = "connection1"}
+--  {ip = "10.2.0.15", port = 12345, connectionId = "connection1"}
 --}
