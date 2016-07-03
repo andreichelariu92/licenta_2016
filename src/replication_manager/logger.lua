@@ -20,7 +20,6 @@ local function getInfo(level)
 end
 
 function logger.log(message)
-    print("logger::Debug\n")
     if not message then
         --do nothing
         return
