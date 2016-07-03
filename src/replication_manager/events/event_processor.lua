@@ -95,8 +95,16 @@ local function makeNetworkEvent(localEvent)
     
     --add the content of the file to the event only if the
     --file has been modified or created
-    if (output.fileType == "file") and (output.eventType == "closeWrite") then
-       local file = assert(io.open(localEvent.absolutePath, "rb"))
+    if (output.fileType == "file") 
+       and (output.eventType == "closeWrite") then
+       
+       local file = io.open(localEvent.absolutePath, "rb")
+
+       if not file then
+           logger.log("cannot open " .. localEvent.absolutePath)
+           return nil
+       end
+
        output.buffer = file:read("*all")
        file:close()
    else
@@ -213,7 +221,9 @@ function event_processor.processLocalEvent(event)
    local send = execLocalEvent(event)
    if send then
        local networkEvent = makeNetworkEvent(event)
-       sendNetworkEvent(networkEvent)
+       if networkEvent then
+           sendNetworkEvent(networkEvent)
+       end
    end
 end
 
