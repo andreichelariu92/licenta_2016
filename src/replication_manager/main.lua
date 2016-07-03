@@ -1,3 +1,4 @@
+logger = require("logger")
 require("clients.broadcast_mechanism_client")
 require("clients.passive_front_end_client")
 require("events.event_processor")
@@ -118,6 +119,8 @@ local config = configureApp()
 
 bcast_client.init(config.bcastPort)
 event_processor.init(config.rootDir)
+logger.init()
+
 if config.conflictFunction then
     event_processor.setConflictFunction(config.conflictFunction)
 end
@@ -142,7 +145,7 @@ while count < config.nrEvents do
 
     local messages = bcast_client.receive(config.bcastTimeout)
     for _, message in pairs(messages) do
-        print("Network event ", message.buffer)
+        logger.log("Network event " .. message.buffer)
         local netEvent = json.decode(message.buffer)
         if netEvent then
             event_processor.processNetworkEvent(netEvent)
