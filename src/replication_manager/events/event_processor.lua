@@ -151,8 +151,6 @@ end
 --It makes backups(if I have time to implement) and
 --returns true if the event should be sent on the network.
 local function execLocalEvent(event)
-    logger.log("process local event")
-    logger.log("process local event")
     if fileops.isLockFile(event.absolutePath) then
         if event.eventType == "create" then
             --all the events on the locked file
@@ -175,13 +173,13 @@ local function execLocalEvent(event)
 
     --don't forward open events
     if event.eventType == "open" then
-        logger.log(event.absolutePath .. "open")
+        logger.log(event.absolutePath .. " open")
         conmgr.handleLocalOpenEvent(event)
         return false
     end
     
-    if event.eventType == "closeWrite" or 
-       eventType == "closeNoWrite" then
+    if event.eventType == "closeWrite" then 
+        logger.log(event.absolutePath .. " closeWrite event")
         local conflict = conmgr.handleLocalCloseEvent(event)
         if conflict then
             logger.log("local event conflict on file " .. event.absolutePath)
@@ -192,9 +190,17 @@ local function execLocalEvent(event)
         end
     end
 
-    --don't forward closeNoWrite events
     if event.eventType == "closeNoWrite" then
-        logger.log(event.absolutePath .. "closeNoWrite")
+        logger.log(event.absolutePath .. " closeNoWrite event")
+        local conflict = conmgr.handleLocalCloseEvent(event)
+        if conflict then
+            --exec events on the file
+            local conflictEvents =
+                conmgr.getConflictEvents(event.absolutePath)
+            for _, event in pairs(conflictEvents) do
+                event_processor.processNetworkEvent(event)
+            end
+        end
         return false
     end
 
@@ -245,6 +251,7 @@ function event_processor.processNetworkEvent(event)
     local conflict = conmgr.handleNetworkEvent(absPath)
     if conflict then
         conmgr.addConflictEvent(absPath, event)
+        logger.log("conflict on file " .. absPath)
         --don't handle the event
         return
     end
@@ -289,14 +296,14 @@ function event_processor.processNetworkEvent(event)
         end
     elseif event.eventType == "closeWrite" then
         fileops.lockFile(absPath)
-        fileops.writeFile(absPath, event.buffer)
+        ok = fileops.writeFile(absPath, event.buffer)
         fileops.unlockFile(absPath)
     end
 
     if not ok then
-        local errMsg = "operation " .. event.eventType
-        errMsg = errMsg .. " on " absPath
-        errMsg = errMsg .. " has failed"
+        local errMsg = ""
+        errMsg = string.format("operation %s on file %s failed",
+            event.eventType, absPath)
         logger.log(errMsg)
     end
 end
