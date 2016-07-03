@@ -34,8 +34,7 @@ local _conflictFunction = function (localPath, conflictEvents)
     
     --execute the events on the original file
     for _, event in pairs(conflictEvents) do
-        print("Conflict network event ",
-              event.relativePath, event.eventType)
+        logger.log("Conflict network event " .. event.relativePath)
         event_processor.processNetworkEvent(event)
     end
 end
@@ -144,7 +143,8 @@ end
 --It makes backups(if I have time to implement) and
 --returns true if the event should be sent on the network.
 local function execLocalEvent(event)
-    print("event_processor::execLocalEvent")
+    logger.log("process local event")
+    logger.log("process local event")
     if fileops.isLockFile(event.absolutePath) then
         if event.eventType == "create" then
             --all the events on the locked file
@@ -167,7 +167,7 @@ local function execLocalEvent(event)
 
     --don't forward open events
     if event.eventType == "open" then
-        print(event.absolutePath, "open")
+        logger.log(event.absolutePath .. "open")
         conmgr.handleLocalOpenEvent(event)
         return false
     end
@@ -176,7 +176,7 @@ local function execLocalEvent(event)
        eventType == "closeNoWrite" then
         local conflict = conmgr.handleLocalCloseEvent(event)
         if conflict then
-            print("local event conflict on file ", event.absolutePath)
+            logger.log("local event conflict on file " .. event.absolutePath)
             local conflictEvents = 
                 conmgr.getConflictEvents(event.absolutePath)
             _conflictFunction(event.absolutePath, conflictEvents)
@@ -186,7 +186,7 @@ local function execLocalEvent(event)
 
     --don't forward closeNoWrite events
     if event.eventType == "closeNoWrite" then
-        print(event.absolutePath, "closeNoWrite")
+        logger.log(event.absolutePath .. "closeNoWrite")
         return false
     end
 
@@ -197,7 +197,7 @@ end
 --the broadcast mechanism
 local function sendNetworkEvent(networkEvent)
    local eventJson = json.encode(networkEvent)
-   print("event_processor::sendNetworkEvent ", eventJson)
+   logger.log("event_processor" .. eventJson)
    local message = {id = "message1", buffer = eventJson}
    bcast_client.send(message)
 end
