@@ -81,17 +81,19 @@ end
 function file_operations.writeFile(path, buffer)
    local file = io.open(path, "wb")
    if not file then
+       logger.log(path .. " is not a valid file")
        return false
    end
 
-   output = nil
+   local output = 0
    if not file:write(buffer) then
-       output = false
+       output = 0
    else
-       output = true
+       output = 1
    end
 
    file:close()
+   logger.log(string.format("%s write %d", path, output))
    return output
 end
 
