@@ -51,8 +51,11 @@ void BroadcastMechanism::addConnection(string ip,
                               port,
                               connectionId);
     
-    std::cout << "BroadcastMechanism::addConnection "
-              << connections_.size() << " active connections\n";
+    LOG << INFO << Logger::trace 
+        << "BroadcastMechanism::addConnection "
+        << connections_.size() 
+        << " active connections\n";
+
     if (connections_.size() == 1)
     {
         createAndStartThreads();
