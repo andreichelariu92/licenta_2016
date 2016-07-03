@@ -6,7 +6,6 @@ using std::vector;
 using std::deque;
 using std::lock_guard;
 using std::mutex;
-using std::cout;
 
 namespace asio = boost::asio;
 using boost::asio::buffer;
