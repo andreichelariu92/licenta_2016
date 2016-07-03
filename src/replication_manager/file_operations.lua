@@ -15,7 +15,7 @@ end
 
 function file_operations.createFile(path)
     local command = "touch " .. path
-    print(command)
+    logger.log(command)
     if os.execute(command) then
         return true
     else
@@ -25,7 +25,7 @@ end
 
 function file_operations.createDir(path)
     local command = "mkdir " .. path
-    print(command)
+    logger.log(command)
     if os.execute(command) then
         return true
     else
@@ -35,7 +35,7 @@ end
 
 function file_operations.removeFile(path)
     local command = "rm -f " .. path
-    print(command)
+    logger.log(command)
     if os.execute(command) then
         return true
     else
@@ -45,7 +45,7 @@ end
 
 function file_operations.removeDir(path)
     local command = "rm -Rf " .. path
-    print(command)
+    logger.log(command)
     if os.execute(command) then
         return true
     else
@@ -55,7 +55,7 @@ end
 
 function file_operations.copyFile(source, destination)
     local command = "cp " .. source .. " " .. destination
-    print(command)
+    logger.log(command)
     if os.execute(command) then
         return true
     else
@@ -70,7 +70,7 @@ function file_operations.move(source, destination)
     end
 
     local command = "mv " .. source .. " " .. destination
-    print(command)
+    logger.log(command)
     if os.execute(command) then
         return true
     else
