@@ -241,7 +241,7 @@ local movedFromDir = ""
 --buffer = the content of the file
 function event_processor.processNetworkEvent(event)
     local absPath = fileops.absolutePath(event.relativePath, rootDir)
-    
+    local ok = nil
     local conflict = conmgr.handleNetworkEvent(absPath)
     if conflict then
         conmgr.addConflictEvent(absPath, event)
@@ -252,21 +252,21 @@ function event_processor.processNetworkEvent(event)
     if event.eventType == "create" then
         if event.fileType == "file" then
             fileops.lockFile(absPath)
-            fileops.createFile(absPath)
+            ok = fileops.createFile(absPath)
             fileops.unlockFile(absPath)
         elseif event.fileType == "directory" then
             fileops.lockDir(absPath)
-            fileops.createDir(absPath)
+            ok = fileops.createDir(absPath)
             fileops.unlockDir(absPath)
         end
     elseif event.eventType == "deleted" then
         if event.fileType == "file" then
             fileops.lockFile(absPath)
-            fileops.removeFile(absPath)
+            ok = fileops.removeFile(absPath)
             fileops.unlockFile(absPath)
         elseif event.fileType == "directory" then
             fileops.lockDir(absPath)
-            fileops.removeDir(absPath)
+            ok = fileops.removeDir(absPath)
             fileops.unlockDir(absPath)
         end
     elseif event.eventType == "movedFrom" then
@@ -283,7 +283,7 @@ function event_processor.processNetworkEvent(event)
             fileops.unlockFile(movedFromFile)
             movedFromFile = ""
         elseif event.fileType == "directory" then
-            fileops.move(movedFromDir, absPath)
+            ok = fileops.move(movedFromDir, absPath)
             fileops.unlockDir(movedFromDir)
             movedFromDir = ""
         end
@@ -291,5 +291,12 @@ function event_processor.processNetworkEvent(event)
         fileops.lockFile(absPath)
         fileops.writeFile(absPath, event.buffer)
         fileops.unlockFile(absPath)
+    end
+
+    if not ok then
+        local errMsg = "operation " .. event.eventType
+        errMsg = errMsg .. " on " absPath
+        errMsg = errMsg .. " has failed"
+        logger.log(errMsg)
     end
 end
