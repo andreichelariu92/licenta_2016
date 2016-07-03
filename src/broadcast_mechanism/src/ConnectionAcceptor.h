@@ -85,8 +85,6 @@ template<typename ConnectionFunctor>
 void 
 ConnectionAcceptor<ConnectionFunctor>::onConnectionMade(const error_code& ec)
 {
-    std::cout << "ConnectionAcceptor::onConnectionMade\n";
-             
     if (!ec) {
         //give the socket to the functor
         connectionFunctor_(std::move(pendingSocket_));
