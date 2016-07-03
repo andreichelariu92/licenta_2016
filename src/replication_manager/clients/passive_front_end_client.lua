@@ -48,6 +48,7 @@ function pfe_client.getFileEvents(port, timeout)
     --it a timeout value
     local clientSocket = assert(socket.tcp())
     assert(clientSocket:connect("127.0.0.1", port))
+    --logger.log("Client has connected")
     print("Client has connected\n")
     while true do
         --clear the list (remove the events
@@ -59,7 +60,7 @@ function pfe_client.getFileEvents(port, timeout)
         if not err then
             deserializeEvents(line)
         else
-            print("error = ", err)
+            logger.log("no events")
         end
         coroutine.yield(listOfFileEvents)
     end
@@ -68,7 +69,7 @@ end
 
 --Test function
 local function consumer()
-    co_eventGenerator = coroutine.create(getFileEvents)
+    co_eventGenerator = coroutine.create(pfe_client.getFileEvents)
     local count = 0
     while count < 10 do
         local state, fileEvents = coroutine.resume(co_eventGenerator)
